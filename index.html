@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Centrifugación RA - Ingeniería</title>
+    
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        
+        #ui-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(16, 23, 32, 0.9);
+            color: white;
+            padding: 18px;
+            box-sizing: border-box;
+            z-index: 9999;
+            border-top: 4px solid #00bcff;
+            border-radius: 12px 12px 0 0;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+        }
+
+        .title-panel {
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            color: #00bcff;
+            text-align: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        label {
+            font-size: 12px;
+            width: 30%;
+            font-weight: 600;
+        }
+
+        .slider {
+            width: 50%;
+            accent-color: #00bcff;
+            cursor: pointer;
+        }
+
+        .value-display {
+            width: 15%;
+            text-align: right;
+            font-family: 'Courier New', Courier, monospace;
+            background: #1a252f;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #2ecc71;
+        }
+
+        .metrics-panel {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            border-radius: 6px;
+            margin-top: 5px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-around;
+            border-left: 3px solid #2ecc71;
+        }
+
+        .metric-item span {
+            font-weight: bold;
+            color: #f1c40f;
+        }
+
+        #btn-pausa {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+        }
+
+        #btn-pausa:active {
+            transform: scale(0.98);
+        }
+
+        #btn-pausa.pausado {
+            background-color: #2ecc71;
+        }
+    </style>
+</head>
+<body>
+
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
+        
+        <a-marker preset="hiro">
+            
+            <a-entity id="rotor-centrifuga" position="0 0 0">
+                
+                <a-cylinder id="tambor-visual" position="0 0.5 0" radius="0.5" height="1.0" 
+                            color="#34495e" opacity="0.25" side="double" open-ended="false">
+                </a-cylinder>
+
+                <a-cylinder position="0 0.5 0" radius="0.03" height="1.0" color="#bdc3c7"></a-cylinder>
+                
+                <a-cylinder position="0 0 0" radius="0.55" height="0.04" color="#2c3e50"></a-cylinder>
+
+                <a-entity id="grupo-particulas"></a-entity>
+
+            </a-entity>
+            
+        </a-marker>
+
+        <a-entity camera></a-entity>
+        
+    </a-scene>
+
+    <div id="ui-container">
+        <div class="title-panel">Operaciones Unitarias: Centrifugación RA</div>
+        
+        <div class="control-group">
+            <label for="slider-rpm">Velocidad (RPM):</label>
+            <input type="range" id="slider-rpm" class="slider" min="0" max="3000" step="100" value="1200">
+            <span id="display-rpm" class="value-display">1200</span>
+        </div>
+        
+        <div class="control-group">
+            <label for="slider-radio">Radio Máx (m):</label>
+            <input type="range" id="slider-radio" class="slider" min="0.1" max="0.5" step="0.05" value="0.4">
+            <span id="display-radio" class="value-display">0.40</span>
+        </div>
+
+        <div class="control-group">
+            <label for="slider-delta">Δρ (kg/m³):</label>
+            <input type="range" id="slider-delta" class="slider" min="100" max="2500" step="100" value="1000">
+            <span id="display-delta" class="value-display">1000</span>
+        </div>
+
+        <div class="metrics-panel">
+            <div class="metric-item">Factor G: <span id="net-g">0.0</span> x g</div>
+            <div class="metric-item">V. Migración Máx: <span id="net-vr">0.0</span> cm/s</div>
+        </div>
+        
+        <button id="btn-pausa">PAUSA</button>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURACIÓN Y ESTADO DE INGENIERÍA ---
+        let isPaused = false;
+        
+        // Parámetros fijos del sistema (Ley de Stokes)
+        const dp = 50e-6;      // Diámetro de partícula estándar fijado: 50 micrómetros
+        const viscosidad = 1e-3; // Viscosidad del agua: 0.001 Pa·s
+        const g = 9.81;        // Gravedad terrestre (m/s²)
+
+        // Variables operativas ligadas a la interfaz
+        let rpm = 1200;
+        let radioMax = 0.4;
+        let deltaRho = 1000;
+
+        // Estado físico de las partículas de la simulación
+        const numeroParticulas = 60;
+        let listaParticulas = [];
+
+        // --- 2. CAPTURA DE COMPONENTES DEL DOM ---
+        const sRPM = document.getElementById('slider-rpm');
+        const sRadio = document.getElementById('slider-radio');
+        const sDelta = document.getElementById('slider-delta');
+        
+        const dRPM = document.getElementById('display-rpm');
+        const dRadio = document.getElementById('display-radio');
+        const dDelta = document.getElementById('display-delta');
+
+        const outG = document.getElementById('net-g');
+        const outVr = document.getElementById('net-vr');
+        const btnPausa = document.getElementById('btn-pausa');
+        
+        const grupoParticulas = document.getElementById('grupo-particulas');
+        const tamborVisual = document.getElementById('tambor-visual');
+
+        // --- 3. CREACIÓN INICIAL DE LAS PARTÍCULAS (Muestreo Aleatorio) ---
+        function inicializarParticulas() {
+            grupoParticulas.innerHTML = ""; // Limpiar contenedor
+            listaParticulas = [];
+
+            for (let i = 0; i < numeroParticulas; i++) {
+                // Posición inicial aleatoria dentro de una región cilíndrica central cercana al eje
+                let rInicial = Math.random() * 0.15; 
+                let anguloInicial = Math.random() * Math.PI * 2;
+                let alturaInicial = Math.random() * 0.8 + 0.1; // Altura dentro del tambor 3D
+
+                // Crear elemento visual en la escena A-Frame
+                let el = document.createElement('a-sphere');
+                el.setAttribute('radius', '0.015');
+                el.setAttribute('color', '#f1c40f'); // Color amarillo industrial
+                grupoParticulas.appendChild(el);
+
+                // Guardar estado interno de la partícula para cálculos diferenciales
+                listaParticulas.push({
+                    elemento: el,
+                    r: rInicial,
+                    angulo: anguloInicial,
+                    y: alturaInicial
+                });
+            }
+        }
+
+        // --- 4. ACTUALIZACIÓN DE EVENTOS DE LA INTERFAZ ---
+        function actualizarParametros() {
+            rpm = parseFloat(sRPM.value);
+            radioMax = parseFloat(sRadio.value);
+            deltaRho = parseFloat(sDelta.value);
+
+            dRPM.textContent = rpm;
+            dRadio.textContent = radioMax.toFixed(2);
+            dDelta.textContent = deltaRho;
+
+            // Escalar el tambor visual 3D en A-Frame según el slider del radio de diseño
+            // La escala base de A-Frame se multiplica para ajustar el radio de forma proporcional
+            let escalaRadio = radioMax / 0.5; 
+            tamborVisual.setAttribute('scale', `${escalaRadio} 1 ${escalaRadio}`);
+        }
+
+        sRPM.addEventListener('input', actualizarParametros);
+        sRadio.addEventListener('input', actualizarParametros);
+        sDelta.addEventListener('input', actualizarParametros);
+
+        // Control del Botón Obligatorio de Pausa
+        btnPausa.addEventListener('click', () => {
+            isPaused = !isPaused;
+            if (isPaused) {
+                btnPausa.textContent = "REANUDAR SIMULACIÓN";
+                btnPausa.classList.add('pausado');
+            } else {
+                btnPausa.textContent = "PAUSA";
+                btnPausa.classList.remove('pausado');
+            }
+        });
+
+        // --- 5. BUCLE DE INTEGRACIÓN FÍSICA Y RENDERIZADO (El Corazón Matemático) ---
+        let ultimoTiempo = performance.now();
+
+        function bucleFisico(tiempoActual) {
+            // Calcular el diferencial de tiempo real transcurrido (dt en segundos)
+            let dt = (tiempoActual - ultimoTiempo) / 1000;
+            ultimoTiempo = tiempoActual;
+
+            // Evitar saltos bruscos si se cambia de pestaña
+            if (dt > 0.1) dt = 0.1; 
+
+            // 1. Cálculos de Ingeniería globales
+            let omega = (2 * Math.PI * rpm) / 60; // Conversión a Rad/s
+            let factorG = (Math.pow(omega, 2) * radioMax) / g;
+            
+            // Ecuación de Stokes para la velocidad de migración en la periferia (Máxima)
+            let vrMax = (Math.pow(dp, 2) * deltaRho * Math.pow(omega, 2) * radioMax) / (18 * viscosidad);
+
+            // Actualizar textos técnicos en la interfaz de pantalla
+            outG.textContent = factorG.toFixed(1);
+            outVr.textContent = (vrMax * 100).toFixed(2); // Convertido a cm/s para mejor lectura del docente
+
+            // 2. Mover partículas si el sistema NO está en PAUSA
+            if (!isPaused && rpm > 0) {
+                listaParticulas.forEach(p => {
+                    
+                    // AUDITORÍA DE IA CORREGIDA POR EL COORDINADOR:
+                    // La velocidad de migración local (vrLocal) se calcula usando el radio actual 'p.r' de cada partícula
+                    let vrLocal = (Math.pow(dp, 2) * deltaRho * Math.pow(omega, 2) * p.r) / (18 * viscosidad);
+                    
+                    // Integración numérica diferencial (Método de Euler): El nuevo radio se incrementa por la velocidad en el dt
+                    p.r += vrLocal * dt;
+                    
+                    // Efecto de velocidad angular: La partícula gira sobre el eje central
+                    p.angulo += omega * dt * 0.1; // Multiplicador visual para suavizar el giro de alta velocidad en pantalla
+
+                    // Condición límite de contorno: Si la partícula llega a la pared del tambor, se reinicia al centro
+                    if (p.r >= radioMax) {
+                        p.r = Math.random() * 0.05; // Reinicio cercano al eje
+                        p.y = Math.random() * 0.8 + 0.1; // Nueva altura aleatoria
+                    }
+
+                    // Conversión de coordenadas polares internas (r, angulo) a coordenadas cartesianas 3D de A-Frame (X, Z)
+                    let x3D = p.r * Math.cos(p.angulo);
+                    let z3D = p.r * Math.sin(p.angulo);
+
+                    // Renderizado físico en el motor gráfico
+                    p.elemento.setAttribute('position', `${x3D} ${p.y} ${z3D}`);
+                });
+            }
+
+            // Llamar al siguiente fotograma del navegador
+            requestAnimationFrame(bucleFisico);
+        }
+
+        // --- 6. ARRANQUE DEL SISTEMA ---
+        inicializarParticulas();
+        actualizarParametros();
+        requestAnimationFrame(bucleFisico);
+        
+    </script>
+</body>
+</html>
