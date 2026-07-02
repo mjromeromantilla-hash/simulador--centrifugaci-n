@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Centrifugación RA - Ingeniería</title>
+    <title>Simulador Avanzado de Centrifugación Tubular RA - Sílice/Agua</title>
     
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -12,102 +12,140 @@
         body {
             margin: 0;
             overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
             user-select: none;
+            background-color: #000;
         }
         
+        /* Panel de Control Estilo Glassmorphism (Premium) */
         #ui-container {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(16, 23, 32, 0.9);
-            color: white;
-            padding: 18px;
+            bottom: 15px;
+            left: 5%;
+            width: 90%;
+            max-width: 500px;
+            background: rgba(10, 17, 26, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: #f3f4f6;
+            padding: 20px;
             box-sizing: border-box;
             z-index: 9999;
-            border-top: 4px solid #00bcff;
-            border-radius: 12px 12px 0 0;
-            box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+            border: 1px solid rgba(0, 188, 255, 0.2);
+            border-radius: 16px;
+            box-shadow: 0 10px 32px rgba(0, 0, 0, 0.5);
         }
 
         .title-panel {
-            font-size: 14px;
-            font-weight: bold;
+            font-size: 13px;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
             color: #00bcff;
             text-align: center;
+            border-bottom: 1px solid rgba(0, 188, 255, 0.15);
+            padding-bottom: 8px;
+            text-shadow: 0 0 8px rgba(0, 188, 255, 0.4);
+        }
+
+        .subtitle-panel {
+            font-size: 11px;
+            color: #9ca3af;
+            text-align: center;
+            margin-top: -12px;
+            margin-bottom: 15px;
+            font-style: italic;
         }
 
         .control-group {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
         }
 
         label {
-            font-size: 12px;
-            width: 30%;
-            font-weight: 600;
+            font-size: 11px;
+            width: 35%;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #d1d5db;
         }
 
         .slider {
-            width: 50%;
+            width: 45%;
             accent-color: #00bcff;
             cursor: pointer;
+            height: 6px;
+            border-radius: 3px;
         }
 
         .value-display {
-            width: 15%;
+            width: 18%;
             text-align: right;
-            font-family: 'Courier New', Courier, monospace;
-            background: #1a252f;
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-size: 12px;
-            color: #2ecc71;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            color: #00ffaa;
+            border: 1px solid rgba(0, 255, 170, 0.15);
         }
 
-        .metrics-panel {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 8px;
-            border-radius: 6px;
-            margin-top: 5px;
-            margin-bottom: 12px;
-            font-size: 13px;
-            display: flex;
-            justify-content: space-around;
-            border-left: 3px solid #2ecc71;
+        /* Indicadores de Métricas de Ingeniería */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #00ffaa;
+        }
+
+        .metric-item {
+            font-size: 11px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            font-weight: 600;
         }
 
         .metric-item span {
-            font-weight: bold;
-            color: #f1c40f;
+            display: block;
+            font-size: 16px;
+            font-weight: 800;
+            color: #ffffff;
+            font-family: monospace;
+            margin-top: 2px;
         }
 
+        /* Botón de Control Crítico Obligatorio */
         #btn-pausa {
-            background-color: #e74c3c;
+            background: linear-gradient(135deg, #ef4444, #991b1b);
             color: white;
-            border: none;
-            padding: 12px;
-            font-size: 15px;
-            font-weight: bold;
-            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 14px;
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             width: 100%;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
         }
 
-        #btn-pausa:active {
-            transform: scale(0.98);
+        #btn-pausa:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
         }
 
         #btn-pausa.pausado {
-            background-color: #2ecc71;
+            background: linear-gradient(135deg, #10b981, #065f46);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
     </style>
 </head>
@@ -117,17 +155,26 @@
         
         <a-marker preset="hiro">
             
-            <a-entity id="rotor-centrifuga" position="0 0 0">
+            <a-entity id="estructura-centrifuga" position="0 0 0">
                 
-                <a-cylinder id="tambor-visual" position="0 0.5 0" radius="0.5" height="1.0" 
-                            color="#34495e" opacity="0.25" side="double" open-ended="false">
+                <a-cylinder position="0 0.6 0" radius="0.45" height="1.2" 
+                            color="#718096" opacity="0.15" wireframe="true" wireframe-linewidth="1">
                 </a-cylinder>
 
-                <a-cylinder position="0 0.5 0" radius="0.03" height="1.0" color="#bdc3c7"></a-cylinder>
-                
-                <a-cylinder position="0 0 0" radius="0.55" height="0.04" color="#2c3e50"></a-cylinder>
+                <a-cylinder id="rotor-visual" position="0 0.6 0" radius="0.35" height="1.1" 
+                            color="#cbd5e1" opacity="0.2" side="double">
+                </a-cylinder>
 
-                <a-entity id="grupo-particulas"></a-entity>
+                <a-cylinder id="eje-central" position="0 0.6 0" radius="0.02" height="1.3" color="#e2e8f0" metalness="0.9" roughness="0.1"></a-cylinder>
+                
+                <a-cylinder position="0 1.15 0" radius="0.36" height="0.05" color="#94a3b8" metalness="0.8" roughness="0.2"></a-cylinder>
+                <a-cylinder position="0 0.05 0" radius="0.36" height="0.05" color="#94a3b8" metalness="0.8" roughness="0.2"></a-cylinder>
+
+                <a-box position="0 -0.05 0" width="0.8" height="0.15" depth="0.8" color="#1e293b" metalness="0.5" roughness="0.5">
+                    <a-box position="0 0.08 0" width="0.4" height="0.04" depth="0.4" color="#475569"></a-box>
+                </box>
+
+                <a-entity id="fase-dispersa-particulas"></a-entity>
 
             </a-entity>
             
@@ -138,187 +185,210 @@
     </a-scene>
 
     <div id="ui-container">
-        <div class="title-panel">Operaciones Unitarias: Centrifugación RA</div>
+        <div class="title-panel">Simulador Industrial: Centrífuga Tubular</div>
+        <div class="subtitle-panel">Sistema Bifásico: Sílice (SiO₂) - Agua (H₂O)</div>
         
         <div class="control-group">
-            <label for="slider-rpm">Velocidad (RPM):</label>
-            <input type="range" id="slider-rpm" class="slider" min="0" max="3000" step="100" value="1200">
-            <span id="display-rpm" class="value-display">1200</span>
+            <label for="slider-rpm">Velocidad Angular (RPM):</label>
+            <input type="range" id="slider-rpm" class="slider" min="0" max="4000" step="100" value="1500">
+            <span id="display-rpm" class="value-display">1500</span>
         </div>
         
         <div class="control-group">
-            <label for="slider-radio">Radio Máx (m):</label>
-            <input type="range" id="slider-radio" class="slider" min="0.1" max="0.5" step="0.05" value="0.4">
-            <span id="display-radio" class="value-display">0.40</span>
+            <label for="slider-radio">Radio del Rotor ($r$):</label>
+            <input type="range" id="slider-radio" class="slider" min="0.10" max="0.35" step="0.01" value="0.28">
+            <span id="display-radio" class="value-display">0.28 m</span>
         </div>
 
         <div class="control-group">
-            <label for="slider-delta">Δρ (kg/m³):</label>
-            <input type="range" id="slider-delta" class="slider" min="100" max="2500" step="100" value="1000">
-            <span id="display-delta" class="value-display">1000</span>
+            <label for="slider-delta">Delta Densidad ($\Delta\rho$):</label>
+            <input type="range" id="slider-delta" class="slider" min="500" max="2000" step="50" value="1650">
+            <span id="display-delta" class="value-display">1650</span>
         </div>
 
-        <div class="metrics-panel">
-            <div class="metric-item">Factor G: <span id="net-g">0.0</span> x g</div>
-            <div class="metric-item">V. Migración Máx: <span id="net-vr">0.0</span> cm/s</div>
+        <div class="metrics-grid">
+            <div class="metric-item">Factor de Separación (G):<span id="net-g">0.0</span></div>
+            <div class="metric-item">Vel. Migración Radial ($v_r$):<span id="net-vr">0.00 mm/s</span></div>
         </div>
         
-        <button id="btn-pausa">PAUSA</button>
+        <button id="btn-pausa">Congelar Sistema (Pausa)</button>
     </div>
 
     <script>
-        // --- 1. CONFIGURACIÓN Y ESTADO DE INGENIERÍA ---
+        // --- CONFIGURACIÓN DE CONSTANTES FÍSICAS (SÍLICE EN AGUA) ---
         let isPaused = false;
-        
-        // Parámetros fijos del sistema (Ley de Stokes)
-        const dp = 50e-6;      // Diámetro de partícula estándar fijado: 50 micrómetros
-        const viscosidad = 1e-3; // Viscosidad del agua: 0.001 Pa·s
-        const g = 9.81;        // Gravedad terrestre (m/s²)
+        const dp = 35e-6;        // Diámetro promedio de la partícula de sílice: 35 micrómetros
+        const viscosidad = 1e-3;   // Viscosidad dinámica del agua a 20°C: 0.001 Pa·s
+        const gravedad = 9.81;    // Aceleración de la gravedad (m/s²)
 
-        // Variables operativas ligadas a la interfaz
-        let rpm = 1200;
-        let radioMax = 0.4;
-        let deltaRho = 1000;
+        // Variables operativas dinámicas
+        let rpmObjetivo = 1500;
+        let rpmActual = 0;       // Almacena la inercia del rotor
+        let radioMax = 0.28;
+        let deltaRho = 1650;      // Densidad Sílice (~2650 kg/m³) - Densidad Agua (~1000 kg/m³) = 1650 kg/m³
 
-        // Estado físico de las partículas de la simulación
-        const numeroParticulas = 60;
-        let listaParticulas = [];
+        const totalParticulas = 120; // Mayor densidad de partículas para realismo analítico
+        let bancoParticulas = [];
 
-        // --- 2. CAPTURA DE COMPONENTES DEL DOM ---
+        // Captura de Elementos UI
         const sRPM = document.getElementById('slider-rpm');
         const sRadio = document.getElementById('slider-radio');
         const sDelta = document.getElementById('slider-delta');
-        
         const dRPM = document.getElementById('display-rpm');
         const dRadio = document.getElementById('display-radio');
         const dDelta = document.getElementById('display-delta');
-
         const outG = document.getElementById('net-g');
         const outVr = document.getElementById('net-vr');
         const btnPausa = document.getElementById('btn-pausa');
         
-        const grupoParticulas = document.getElementById('grupo-particulas');
-        const tamborVisual = document.getElementById('tambor-visual');
+        const contenedorParticulas = document.getElementById('fase-dispersa-particulas');
+        const rotorVisual = document.getElementById('rotor-visual');
+        const ejeCentral = document.getElementById('eje-central');
 
-        // --- 3. CREACIÓN INICIAL DE LAS PARTÍCULAS (Muestreo Aleatorio) ---
-        function inicializarParticulas() {
-            grupoParticulas.innerHTML = ""; // Limpiar contenedor
-            listaParticulas = [];
+        // --- SISTEMA DE INYECCIÓN DE PARTÍCULAS DE SÍLICE (Alta Fidelidad) ---
+        function generarSuspension() {
+            contenedorParticulas.innerHTML = "";
+            bancoParticulas = [];
 
-            for (let i = 0; i < numeroParticulas; i++) {
-                // Posición inicial aleatoria dentro de una región cilíndrica central cercana al eje
-                let rInicial = Math.random() * 0.15; 
+            for (let i = 0; i < totalParticulas; i++) {
+                // Distribución aleatoria inicial simulando un fluido homogéneo sin centrifugar
+                let rInicial = Math.random() * radioMax;
                 let anguloInicial = Math.random() * Math.PI * 2;
-                let alturaInicial = Math.random() * 0.8 + 0.1; // Altura dentro del tambor 3D
+                let yInicial = Math.random() * 0.9 + 0.15; // Altura dentro del cilindro transparente
 
-                // Crear elemento visual en la escena A-Frame
+                // Variabilidad de tamaño de partículas reales (Muestreo Gaussiano simplificado)
+                let factorEscalaRandom = Math.random() * 0.008 + 0.006;
+
                 let el = document.createElement('a-sphere');
-                el.setAttribute('radius', '0.015');
-                el.setAttribute('color', '#f1c40f'); // Color amarillo industrial
-                grupoParticulas.appendChild(el);
+                el.setAttribute('radius', factorEscalaRandom.toString());
+                
+                // Color realista de la arena de sílice mojada con opacidad variable por refracción
+                el.setAttribute('color', '#e2e8f0'); 
+                el.setAttribute('opacity', (Math.random() * 0.4 + 0.5).toFixed(2));
+                el.setAttribute('roughness', '0.8');
+                contenedorParticulas.appendChild(el);
 
-                // Guardar estado interno de la partícula para cálculos diferenciales
-                listaParticulas.push({
+                bancoParticulas.push({
                     elemento: el,
                     r: rInicial,
                     angulo: anguloInicial,
-                    y: alturaInicial
+                    y: yInicial,
+                    vibracionSeed: Math.random() * 100
                 });
             }
         }
 
-        // --- 4. ACTUALIZACIÓN DE EVENTOS DE LA INTERFAZ ---
-        function actualizarParametros() {
-            rpm = parseFloat(sRPM.value);
+        function sincronizarEntradas() {
+            rpmObjetivo = parseFloat(sRPM.value);
             radioMax = parseFloat(sRadio.value);
             deltaRho = parseFloat(sDelta.value);
 
-            dRPM.textContent = rpm;
-            dRadio.textContent = radioMax.toFixed(2);
-            dDelta.textContent = deltaRho;
+            dRPM.textContent = rpmObjetivo;
+            dRadio.textContent = radioMax.toFixed(2) + " m";
+            dDelta.textContent = deltaRho + " kg/m³";
 
-            // Escalar el tambor visual 3D en A-Frame según el slider del radio de diseño
-            // La escala base de A-Frame se multiplica para ajustar el radio de forma proporcional
-            let escalaRadio = radioMax / 0.5; 
-            tamborVisual.setAttribute('scale', `${escalaRadio} 1 ${escalaRadio}`);
+            // Escalamiento visual del rotor físico en tiempo real acorde al parámetro geométrico
+            let escalaVisualRadio = radioMax / 0.35;
+            rotorVisual.setAttribute('scale', `${escalaVisualRadio} 1 ${escalaVisualRadio}`);
         }
 
-        sRPM.addEventListener('input', actualizarParametros);
-        sRadio.addEventListener('input', actualizarParametros);
-        sDelta.addEventListener('input', actualizarParametros);
+        sRPM.addEventListener('input', sincronizarEntradas);
+        sRadio.addEventListener('input', sincronizarEntradas);
+        sDelta.addEventListener('input', sincronizarEntradas);
 
-        // Control del Botón Obligatorio de Pausa
+        // Control del Requisito Obligatorio de Pausa Estática
         btnPausa.addEventListener('click', () => {
             isPaused = !isPaused;
             if (isPaused) {
-                btnPausa.textContent = "REANUDAR SIMULACIÓN";
+                btnPausa.textContent = "Reanudar Flujo Dinámico";
                 btnPausa.classList.add('pausado');
             } else {
-                btnPausa.textContent = "PAUSA";
+                btnPausa.textContent = "Congelar Sistema (Pausa)";
                 btnPausa.classList.remove('pausado');
             }
         });
 
-        // --- 5. BUCLE DE INTEGRACIÓN FÍSICA Y RENDERIZADO (El Corazón Matemático) ---
-        let ultimoTiempo = performance.now();
+        // --- BUCLE DE RENDERIZADO Y MODELAMIENTO MATEMÁTICO ---
+        let tiempoPrevio = performance.now();
 
-        function bucleFisico(tiempoActual) {
-            // Calcular el diferencial de tiempo real transcurrido (dt en segundos)
-            let dt = (tiempoActual - ultimoTiempo) / 1000;
-            ultimoTiempo = tiempoActual;
+        function ejecutarSimulacion(tiempoActual) {
+            let dt = (tiempoActual - tiempoPrevio) / 1000;
+            tiempoPrevio = tiempoActual;
+            if (dt > 0.1) dt = 0.1;
 
-            // Evitar saltos bruscos si se cambia de pestaña
-            if (dt > 0.1) dt = 0.1; 
-
-            // 1. Cálculos de Ingeniería globales
-            let omega = (2 * Math.PI * rpm) / 60; // Conversión a Rad/s
-            let factorG = (Math.pow(omega, 2) * radioMax) / g;
-            
-            // Ecuación de Stokes para la velocidad de migración en la periferia (Máxima)
-            let vrMax = (Math.pow(dp, 2) * deltaRho * Math.pow(omega, 2) * radioMax) / (18 * viscosidad);
-
-            // Actualizar textos técnicos en la interfaz de pantalla
-            outG.textContent = factorG.toFixed(1);
-            outVr.textContent = (vrMax * 100).toFixed(2); // Convertido a cm/s para mejor lectura del docente
-
-            // 2. Mover partículas si el sistema NO está en PAUSA
-            if (!isPaused && rpm > 0) {
-                listaParticulas.forEach(p => {
-                    
-                    // AUDITORÍA DE IA CORREGIDA POR EL COORDINADOR:
-                    // La velocidad de migración local (vrLocal) se calcula usando el radio actual 'p.r' de cada partícula
-                    let vrLocal = (Math.pow(dp, 2) * deltaRho * Math.pow(omega, 2) * p.r) / (18 * viscosidad);
-                    
-                    // Integración numérica diferencial (Método de Euler): El nuevo radio se incrementa por la velocidad en el dt
-                    p.r += vrLocal * dt;
-                    
-                    // Efecto de velocidad angular: La partícula gira sobre el eje central
-                    p.angulo += omega * dt * 0.1; // Multiplicador visual para suavizar el giro de alta velocidad en pantalla
-
-                    // Condición límite de contorno: Si la partícula llega a la pared del tambor, se reinicia al centro
-                    if (p.r >= radioMax) {
-                        p.r = Math.random() * 0.05; // Reinicio cercano al eje
-                        p.y = Math.random() * 0.8 + 0.1; // Nueva altura aleatoria
-                    }
-
-                    // Conversión de coordenadas polares internas (r, angulo) a coordenadas cartesianas 3D de A-Frame (X, Z)
-                    let x3D = p.r * Math.cos(p.angulo);
-                    let z3D = p.r * Math.sin(p.angulo);
-
-                    // Renderizado físico en el motor gráfico
-                    p.elemento.setAttribute('position', `${x3D} ${p.y} ${z3D}`);
-                });
+            // Simulación física de Inercia Mecánica (Aceleración paulatina del motor)
+            if (!isPaused) {
+                rpmActual += (rpmObjetivo - rpmActual) * 0.05; 
             }
 
-            // Llamar al siguiente fotograma del navegador
-            requestAnimationFrame(bucleFisico);
+            // Cálculos Científicos del Fenómeno (Extraídos del McCabe/Geankoplis por el Coordinador)
+            let omega = (2 * Math.PI * rpmActual) / 60;
+            let factorG = (Math.pow(omega, 2) * radioMax) / gravedad;
+            let vrMax = (Math.pow(dp, 2) * deltaRho * Math.pow(omega, 2) * radioMax) / (18 * viscosidad);
+
+            // Reflejar variables de salida analíticas
+            outG.textContent = rpmActual > 10 ? factorG.toFixed(1) + " x g" : "1.0 x g";
+            outVr.textContent = rpmActual > 10 ? (vrMax * 1000).toFixed(3) + " mm/s" : "0.000 mm/s";
+
+            // Rotación visual de los componentes de acero y borosilicato
+            if (!isPaused) {
+                let rotacionRotor = rotorVisual.getAttribute('rotation') || {x: 0, y: 0, z: 0};
+                let deltaAnguloRotacion = (omega * dt) * 57.2958 * 0.03; // Conversión a grados con atenuación visual
+                rotorVisual.setAttribute('rotation', `0 ${rotacionRotor.y + deltaAnguloRotacion} 0`);
+                ejeCentral.setAttribute('rotation', `0 ${rotacionRotor.y + deltaAnguloRotacion} 0`);
+            }
+
+            // Simulación del Movimiento de la Fase Dispersa (Partículas de Sílice)
+            bancoParticulas.forEach(p => {
+                if (!isPaused) {
+                    if (rpmActual > 50) {
+                        // Ecuación diferencial local basada en la posición radial instantánea de cada partícula
+                        let vrLocal = (Math.pow(dp, 2) * deltaRho * Math.pow(omega, 2) * p.r) / (18 * viscosidad);
+                        
+                        // Incremento de Euler
+                        p.r += vrLocal * dt;
+                        
+                        // El campo centrífugo arrastra cinemáticamente las partículas en rotación
+                        p.angulo += omega * dt * 0.12;
+
+                        // Efecto Clarificación / Sedimentación Límitrofe:
+                        // Al llegar a la pared interna del rotor, simulan compactarse formando la torta de filtrado
+                        if (p.r >= radioMax) {
+                            // Se reinician cíclicamente en la alimentación inferior para mantener el flujo del simulador
+                            p.r = Math.random() * 0.04 + 0.01;
+                            p.y = 0.15;
+                        } else {
+                            // Flujo ascencional turbulento hacia la salida superior de la centrífuga tubular
+                            p.y += (0.15 + (rpmActual * 0.00005)) * dt;
+                            if (p.y > 1.15) {
+                                p.y = 0.15;
+                                p.r = Math.random() * 0.04 + 0.01;
+                            }
+                        }
+                    } else {
+                        // Movimiento Browniano/Sedimentación natural por gravedad cuando el motor está apagado o en ralentí
+                        p.r += (Math.sin(tiempoActual * 0.005 + p.vibracionSeed) * 0.02) * dt;
+                        p.y -= 0.03 * dt;
+                        if (p.y < 0.15) p.y = 1.15;
+                        if (p.r > radioMax) p.r = radioMax - 0.02;
+                    }
+                }
+
+                // Mapeo matemático final de coordenadas cilíndricas a coordenadas cartesianas 3D en A-Frame
+                let x3D = p.r * Math.cos(p.angulo);
+                let z3D = p.r * Math.sin(p.angulo);
+
+                p.elemento.setAttribute('position', `${x3D} ${p.y} ${z3D}`);
+            });
+
+            requestAnimationFrame(ejecutarSimulacion);
         }
 
-        // --- 6. ARRANQUE DEL SISTEMA ---
-        inicializarParticulas();
-        actualizarParametros();
-        requestAnimationFrame(bucleFisico);
-        
+        // Arranque de Ingeniería
+        generarSuspension();
+        sRadio.addEventListener('input', generarSuspension); // Regenera partículas óptimas si cambia el volumen geométrico
+        sincronizarEntradas();
+        requestAnimationFrame(ejecutarSimulacion);
     </script>
 </body>
 </html>
