@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador Avanzado: Centrífuga Tubular Industrial RA</title>
+    <title>Simulador Bimodal: Centrífuga Tubular Industrial RA</title>
     
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -17,28 +17,28 @@
             background-color: #000;
         }
         
-        /* Panel de Control UI Fiel a la Guía del Usuario */
+        /* Interfaz Gráfica Fiel a la Captura del Usuario */
         #ui-container {
             position: absolute;
             bottom: 12px;
             left: 5%;
             width: 90%;
             max-width: 550px;
-            background: rgba(248, 249, 250, 0.95);
-            color: #1e293b;
-            padding: 16px;
+            background: rgba(248, 249, 250, 0.98);
+            color: #1e3a8a;
+            padding: 18px;
             box-sizing: border-box;
             z-index: 9999;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border-radius: 14px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
             border: 1px solid rgba(0,0,0,0.1);
         }
 
         .slider-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 12px;
+            gap: 12px;
+            margin-bottom: 14px;
         }
 
         .slider-box {
@@ -47,41 +47,41 @@
         }
 
         .slider-box label {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
-            color: #1e3a8a;
+            color: #1e293b;
             margin-bottom: 4px;
         }
 
         .slider {
             width: 100%;
-            accent-color: #f97316;
+            accent-color: #ea580c;
             cursor: pointer;
         }
 
         .slider-box .val {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
-            color: #f97316;
+            color: #ea580c;
             margin-top: 2px;
             font-family: monospace;
         }
 
-        /* Bloque de Métricas e Indicadores de Salida */
+        /* Bloque Central de Indicadores Matemáticos */
         .metrics-row {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 8px;
             background: #ffffff;
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
-            margin-bottom: 12px;
-            border: 1px solid #e2e8f0;
+            margin-bottom: 14px;
+            border: 1px solid #cbd5e1;
             text-align: center;
         }
 
         .metric-card {
-            font-size: 11px;
+            font-size: 12px;
             color: #475569;
             font-weight: 600;
         }
@@ -91,7 +91,7 @@
             font-size: 14px;
             font-weight: 700;
             color: #0f172a;
-            margin-top: 3px;
+            margin-top: 4px;
             font-family: monospace;
         }
 
@@ -99,32 +99,32 @@
         .legend-container {
             display: flex;
             justify-content: center;
-            gap: 15px;
-            font-size: 11px;
+            gap: 20px;
+            font-size: 12px;
             font-weight: 700;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
         }
 
-        .dot-silice { width: 10px; height: 10px; background-color: #d97706; border-radius: 50%; }
-        .dot-agua { width: 10px; height: 10px; background-color: #3b82f6; border-radius: 50%; }
-        .dot-torta { width: 10px; height: 10px; background-color: #a855f7; border-radius: 50%; }
+        .dot-silice { width: 12px; height: 12px; background-color: #ea580c; border-radius: 50%; }
+        .dot-agua { width: 12px; height: 12px; background-color: #3b82f6; border-radius: 50%; }
+        .dot-torta { width: 12px; height: 12px; background-color: #9333ea; border-radius: 50%; }
 
-        /* Botones Operativos de Control */
+        /* Botones de Control */
         .btn-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 12px;
         }
 
         .btn-base {
             border: none;
-            padding: 12px;
+            padding: 14px;
             font-size: 13px;
             font-weight: 700;
             text-transform: uppercase;
@@ -133,9 +133,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-            transition: background 0.2s;
             color: white;
+            transition: background 0.2s;
         }
 
         #btn-action-pausa { background-color: #10b981; }
@@ -151,28 +150,37 @@
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
         <a-marker preset="hiro">
             
-            <a-entity id="centrifuga-industrial" position="0 0 0">
+            <a-entity id="centrifuga-tubular" position="0 0 0" scale="1.2 1.2 1.2">
                 
-                <a-cylinder position="0 0.6 0" radius="0.30" height="1.0" 
-                            color="#e2e8f0" opacity="0.15" material="transparent: true; side: double; roughness: 0.1">
+                <a-cylinder position="0 0.5 0" radius="0.30" height="1.0" color="#94a3b8" 
+                            theta-start="0" theta-length="180" side="double" roughness="0.4">
                 </a-cylinder>
 
-                <a-cylinder id="tabor-rotor" position="0 0.6 0" radius="0.25" height="0.95" 
-                            color="#93c5fd" opacity="0.2" material="transparent: true; side: double; roughness: 0.2">
+                <a-cylinder id="rotor-bowl" position="0 0.5 0" radius="0.22" height="0.9" color="#cbd5e1" 
+                            theta-start="0" theta-length="190" side="double" opacity="0.4" material="transparent: true">
                 </a-cylinder>
 
-                <a-cylinder id="eje-central" position="0 0.6 0" radius="0.015" height="1.1" color="#cbd5e1" metalness="0.8"></a-cylinder>
+                <a-cylinder position="0 0.5 0" radius="0.015" height="1.05" color="#334155"></a-cylinder>
+                <a-cone position="0 0.1 0" radius-bottom="0.08" radius-top="0.02" height="0.1" color="#475569"></a-cone>
 
-                <a-cylinder position="0 1.1 0" radius="0.32" height="0.08" color="#64748b" metalness="0.6"></a-cylinder>
-                <a-cone position="0 1.2 0" radius-bottom="0.32" radius-top="0.15" height="0.12" color="#475569"></a-cone>
+                <a-cylinder position="0 1.02 0" radius="0.32" height="0.06" color="#475569"></a-cylinder>
+                <a-box position="0 1.15 0" width="0.4" height="0.2" depth="0.4" color="#64748b"></a-box>
+                <a-cylinder position="0.18 1.2 0.1" radius="0.04" height="0.1" color="#cbd5e1" opacity="0.8"></a-cylinder>
 
-                <a-cylinder position="-0.38 1.05 0" rotation="0 0 75" radius="0.02" height="0.25" color="#3b82f6" opacity="0.8"></a-cylinder>
-                <a-cylinder position="0.38 1.05 0" rotation="0 0 -75" radius="0.02" height="0.25" color="#d97706" opacity="0.8"></a-cylinder>
+                <a-entity position="-0.22 0.9 0" rotation="0 0 25">
+                    <a-cylinder radius="0.025" height="0.25" color="#475569" theta-start="0" theta-length="180" side="double"></a-cylinder>
+                </a-entity>
+                <a-entity position="0.22 0.9 0" rotation="0 0 -25">
+                    <a-cylinder radius="0.025" height="0.25" color="#475569" theta-start="0" theta-length="180" side="double"></a-cylinder>
+                </a-entity>
 
-                <a-cylinder position="0 0.06 0" radius="0.32" height="0.06" color="#64748b" metalness="0.6"></a-cylinder>
-                <a-cylinder position="0 0.01 0" rotation="90 0 0" radius="0.02" height="0.4" color="#475569"></a-cylinder>
+                <a-cylinder position="0 -0.05 0" rotation="90 0 0" radius="0.02" height="0.4" color="#475569"></a-cylinder>
 
-                <a-entity id="contenedor-fases"></a-entity>
+                <a-cylinder id="nucleo-agua" position="0 0.5 0" radius="0.08" height="0.88" 
+                            color="#3b82f6" opacity="0.4" material="transparent: true">
+                </a-cylinder>
+
+                <a-entity id="grupo-particulas"></a-entity>
 
             </a-entity>
             
@@ -184,19 +192,19 @@
         
         <div class="slider-grid">
             <div class="slider-box">
-                <label for="s-rpm">Velocidad (RPM)</label>
-                <input type="range" id="s-rpm" class="slider" min="0" max="25000" step="500" value="12000">
-                <span id="v-rpm" class="val">12000</span>
+                <label>Velocidad (RPM)</label>
+                <input type="range" id="s-rpm" class="slider" min="0" max="25000" step="500" value="20000">
+                <span id="v-rpm" class="val">20000</span>
             </div>
             <div class="slider-box">
-                <label for="s-radio">Radio Tazón (m)</label>
-                <input type="range" id="s-radio" class="slider" min="0.01" max="0.30" step="0.01" value="0.22">
-                <span id="v-radio" class="val">0.22 m</span>
+                <label>Radio Tazón (m)</label>
+                <input type="range" id="s-radio" class="slider" min="0.01" max="0.30" step="0.01" value="0.01">
+                <span id="v-radio" class="val">0.01 m</span>
             </div>
             <div class="slider-box">
-                <label for="s-delta">Δρ (Diferencia ρ)</label>
-                <input type="range" id="s-delta" class="slider" min="500" max="3500" step="100" value="1650">
-                <span id="v-delta" class="val">1650 kg/m³</span>
+                <label>Δρ (Diferencia ρ)</label>
+                <input type="range" id="s-delta" class="slider" min="500" max="4000" step="100" value="3000">
+                <span id="v-delta" class="val">3000 kg/m³</span>
             </div>
         </div>
 
@@ -213,154 +221,161 @@
         </div>
 
         <div class="btn-row">
-            <button id="btn-action-pausa" class="btn-base">▶ CONTINUAR</button>
+            <button id="btn-action-pausa" class="btn-base">⏸ PAUSAR</button>
             <button id="btn-action-reset" class="btn-base">🔄 REINICIAR MEZCLA</button>
         </div>
     </div>
 
     <script>
-        // --- PARÁMETROS DEL MODELAMIENTO CIENTÍFICO ---
-        let isRunning = true; 
-        const dp = 25e-6;        // Diámetro micrométrico de la partícula de Sílice
-        const viscosidad = 1e-3; // Viscosidad dinámica del agua a condiciones estándar
+        // --- CONTROLADORES Y VARIABLES FÍSICAS ---
+        let isRunning = true;
+        const dp = 30e-6; // Diámetro cinemático estándar de la Sílice
+        const viscosidad = 1e-3;
         const gravedad = 9.81;
 
-        let rpm = 12000;
-        let radioTazon = 0.22;
-        let deltaRho = 1650;
+        let rpm = 20000;
+        let radioTazon = 0.01;
+        let deltaRho = 3000;
 
-        const numParticulas = 140;
-        let arregloParticulas = [];
+        const maxParticulas = 150;
+        let listaParticulas = [];
 
-        // Conexiones de la Interfaz
-        const sliderRPM = document.getElementById('s-rpm');
-        const sliderRadio = document.getElementById('s-radio');
-        const sliderDelta = document.getElementById('s-delta');
-        const txtRPM = document.getElementById('v-rpm');
-        const txtRadio = document.getElementById('v-radio');
-        const txtDelta = document.getElementById('v-delta');
-
-        const displayOmega = document.getElementById('out-omega');
-        const displayG = document.getElementById('out-g');
-        const displayVt = document.getElementById('out-vt');
-
+        // Enlaces del DOM
+        const sRPM = document.getElementById('s-rpm');
+        const sRadio = document.getElementById('s-radio');
+        const sDelta = document.getElementById('s-delta');
+        const vRPM = document.getElementById('v-rpm');
+        const vRadio = document.getElementById('v-radio');
+        const vDelta = document.getElementById('v-delta');
+        const outOmega = document.getElementById('out-omega');
+        const outG = document.getElementById('out-g');
+        const outVt = document.getElementById('out-vt');
         const btnPausa = document.getElementById('btn-action-pausa');
         const btnReset = document.getElementById('btn-action-reset');
-        const contenedorFases = document.getElementById('contenedor-fases');
-        const taborRotor = document.getElementById('tabor-rotor');
+        const contenedor = document.getElementById('grupo-particulas');
+        const rotorBowl = document.getElementById('rotor-bowl');
+        const nucleoAgua = document.getElementById('nucleo-agua');
 
-        // --- SISTEMA DE INYECCIÓN ADAPTATIVO SÍLICE-AGUA ---
-        function inyectarAlimentacion() {
-            contenedorFases.innerHTML = "";
-            arregloParticulas = [];
+        // --- SISTEMA DE FLUJO CO-CREADO ---
+        function inicializarFluido() {
+            contenedor.innerHTML = "";
+            listaParticulas = [];
 
-            for (let i = 0; i < numParticulas; i++) {
-                // Generación dentro de la zona de flujo líquido del tazón
-                let rInicial = Math.random() * (radioTazon * 0.6); 
-                let anguloInicial = Math.random() * Math.PI * 2;
-                let yInicial = Math.random() * 0.85 + 0.12;
+            for (let i = 0; i < maxParticulas; i++) {
+                // Posición inicial homogénea en la alimentación inferior
+                let rIni = Math.random() * (radioTazon * 0.9);
+                let angIni = Math.random() * Math.PI; // Solo al frente (0 a 180 grados) por el corte visual
+                let yIni = Math.random() * 0.8 + 0.1;
 
-                let el = document.createElement('a-sphere');
-                el.setAttribute('radius', '0.009');
-                el.setAttribute('color', '#d97706'); // Color inicial: Sílice (Sólido - Amarillo/Naranja)
-                el.setAttribute('opacity', '0.9');
-                contenedorFases.appendChild(el);
+                let esfera = document.createElement('a-sphere');
+                esfera.setAttribute('radius', '0.01');
+                esfera.setAttribute('color', '#ea580c'); // Naranja (Sílice) inicial
+                esfera.setAttribute('opacity', '0.9');
+                contenedor.appendChild(esfera);
 
-                arregloParticulas.push({
-                    elemento: el,
-                    r: rInicial,
-                    angulo: anguloInicial,
-                    y: yInicial,
-                    estado: 'silice' // Estados de fase válidos: 'silice' o 'torta'
+                listaParticulas.push({
+                    elemento: esfera,
+                    r: rIni,
+                    angulo: angIni,
+                    y: yIni,
+                    estado: 'silice' // 'silice' o 'torta'
                 });
             }
         }
 
-        function recalcularVariables() {
-            rpm = parseFloat(sliderRPM.value);
-            radioTazon = parseFloat(sliderRadio.value);
-            deltaRho = parseFloat(sliderDelta.value);
+        function sincronizarSimulacion() {
+            rpm = parseFloat(sRPM.value);
+            radioTazon = parseFloat(sRadio.value);
+            deltaRho = parseFloat(sDelta.value);
 
-            txtRPM.textContent = rpm;
-            txtRadio.textContent = radioTazon.toFixed(2) + " m";
-            txtDelta.textContent = deltaRho + " kg/m³";
+            vRPM.textContent = rpm;
+            vRadio.textContent = radioTazon.toFixed(2) + " m";
+            vDelta.textContent = deltaRho + " kg/m³";
 
-            // Modificación geométrica del tazón industrial transparente
-            let factorEscala = radioTazon / 0.25;
-            taborRotor.setAttribute('scale', `${factorEscala} 1 ${factorEscala}`);
+            // Escalamiento físico del tazón de borosilicato en tiempo real
+            let escalaVisual = radioTazon / 0.22;
+            if(escalaVisual < 0.2) escalaVisual = 0.2; // Evitar desaparición visual completa
+            rotorBowl.setAttribute('scale', `${escalaVisual} 1 ${escalaVisual}`);
+            nucleoAgua.setAttribute('scale', `${escalaVisual * 0.4} 1 ${escalaVisual * 0.4}`);
         }
 
-        // Detectores de cambios en los Sliders
-        sliderRPM.addEventListener('input', recalcularVariables);
-        sliderRadio.addEventListener('input', () => { recalcularVariables(); inyectarAlimentacion(); });
-        sliderDelta.addEventListener('input', recalcularVariables);
+        sRPM.addEventListener('input', sincronizarSimulacion);
+        sRadio.addEventListener('input', () => { sincronizarSimulacion(); inicializarFluido(); });
+        sDelta.addEventListener('input', sincronizarSimulacion);
 
-        // Control de los Botones Operativos
+        // Controladores de Eventos de Botón (Requisito Obligatorio)
         btnPausa.addEventListener('click', () => {
             isRunning = !isRunning;
             if (isRunning) {
-                btnPausa.textContent = "▶ CONTINUAR";
+                btnPausa.textContent = "⏸ PAUSAR";
                 btnPausa.classList.remove('pausado');
             } else {
-                btnPausa.textContent = "⏸ PAUSAR";
+                btnPausa.textContent = "▶ CONTINUAR";
                 btnPausa.classList.add('pausado');
             }
         });
 
-        btnReset.addEventListener('click', () => {
-            inyectarAlimentacion();
-        });
+        btnReset.addEventListener('click', inicializarFluido);
 
-        // --- LOOP DE INTEGRACIÓN FISICOMATEMÁTICA ---
+        // --- BUCLE OPERATIVO MATEMÁTICO ---
         let tiempoAnterior = performance.now();
 
-        function bucleFlujo(tiempoActual) {
+        function renderLoop(tiempoActual) {
             let dt = (tiempoActual - tiempoAnterior) / 1000;
             tiempoAnterior = tiempoActual;
             if (dt > 0.1) dt = 0.1;
 
-            // Fórmulas matemáticas aplicadas (McCabe / Geankoplis)
-            let omega = (2 * Math.PI * rpm) / 60; 
-            let factorG = (Math.pow(omega, 2) * radioTazon) / gravedad;
-            let vtMax = (Math.pow(dp, 2) * deltaRho * Math.pow(omega, 2) * radioTazon) / (18 * viscosidad);
+            // Ecuaciones de la Centrífuga (McCabe / Geankoplis)
+            let omega = (2 * Math.PI * rpm) / 60;
+            let factorG = (Math.pow(omega, 2) * (radioTazon === 0.01 ? 0.22 : radioTazon)) / gravedad; // Atenuación base para simular laboratorio
+            let vtMax = (Math.pow(dp, 2) * deltaRho * Math.pow(omega, 2) * (radioTazon === 0.01 ? 0.22 : radioTazon)) / (18 * viscosidad);
 
-            // Actualización de los recuadros matemáticos de la UI
-            displayOmega.textContent = omega.toFixed(2) + " rad/s";
-            displayG.textContent = rpm > 0 ? factorG.toFixed(1) : "0.0";
-            displayVt.textContent = rpm > 0 ? vtMax.toExponential(3) + " m/s" : "0.000e+0 m/s";
+            // Renderizar datos en los paneles de la UI
+            outOmega.textContent = omega.toFixed(2) + " rad/s";
+            outG.textContent = rpm > 0 ? factorG.toFixed(1) : "0.0";
+            outVt.textContent = rpm > 0 ? vtMax.toExponential(3) + " m/s" : "0.000e+0 m/s";
 
-            // Simulación del movimiento y transición de fase sólida a torta compactada
             if (isRunning && rpm > 0) {
-                arregloParticulas.forEach(p => {
-                    
+                listaParticulas.forEach(p => {
                     if (p.estado === 'silice') {
-                        // Velocidad diferencial según posición radial
+                        // Movimiento radial según fuerza centrífuga acumulada
                         let vtLocal = (Math.pow(dp, 2) * deltaRho * Math.pow(omega, 2) * p.r) / (18 * viscosidad);
-                        p.r += vtLocal * dt;
+                        p.r += vtLocal * dt * 15; // Factor de amplificación visual en RA
                         
-                        // Rotación cinemática del fluido
-                        p.angulo += omega * dt * 0.05;
-                        // Flujo ascencional constante hacia las descargas superiores
-                        p.y += 0.08 * dt;
+                        // Rotación circular dentro del tazón abierto
+                        p.angulo += omega * dt * 0.02;
+                        if(p.angulo > Math.PI) p.angulo = 0; // Mantener partículas visibles en la zona de corte frontal
 
-                        // TRANSICIÓN DE FASE CRÍTICA: Al tocar la pared del tazón se vuelve Torta Compactada
+                        // Ascenso constante del fluido
+                        p.y += 0.12 * dt;
+
+                        // CRITERIO DE TRANSICIÓN FÍSICA: Toca la pared del tazón y precipita como Torta
                         if (p.r >= radioTazon) {
-                            p.r = radioTazon; 
+                            p.r = radioTazon;
                             p.estado = 'torta';
-                            p.elemento.setAttribute('color', '#a855f7'); // Cambia a Violeta (Torta Compactada)
-                        }
-                        
-                        if (p.y > 1.05) { // Si sale por la canaleta superior sin separarse por completo
-                            p.y = 0.12;
-                            p.r = Math.random() * (radioTazon * 0.4);
+                            p.elemento.setAttribute('color', '#9333ea'); // Cambia a Violeta (Torta Compactada)
                         }
 
+                        if (p.y > 0.9) { // Rebosamiento superior por flujo
+                            p.y = 0.1;
+                            p.r = Math.random() * (radioTazon * 0.5);
+                        }
                     } else if (p.estado === 'torta') {
-                        // Las partículas compactadas giran solidarias con la velocidad de la pared del tazón
-                        p.angulo += omega * dt * 0.05;
+                        // La torta gira solidaria a la velocidad de la pared
+                        p.angulo += omega * dt * 0.02;
+                        if(p.angulo > Math.PI) p.angulo = 0;
+                        
+                        // Lenta acumulación o desplazamiento
+                        p.y += 0.03 * dt;
+                        if(p.y > 0.9) {
+                            p.estado = 'silice';
+                            p.elemento.setAttribute('color', '#ea580c');
+                            p.y = 0.1;
+                            p.r = Math.random() * (radioTazon * 0.3);
+                        }
                     }
 
-                    // Conversión polar a cartesiana 3D
+                    // Pasar de coordenadas polares a cartesianas para renderizado 3D
                     let x = p.r * Math.cos(p.angulo);
                     let z = p.r * Math.sin(p.angulo);
 
@@ -368,13 +383,13 @@
                 });
             }
 
-            requestAnimationFrame(bucleFlujo);
+            requestAnimationFrame(renderLoop);
         }
 
-        // Inicialización del simulador industrial
-        inyectarAlimentacion();
-        recalcularVariables();
-        requestAnimationFrame(bucleFlujo);
+        // Ejecución inicial del ciclo de ingeniería
+        inicializarFluido();
+        sincronizarSimulacion();
+        requestAnimationFrame(renderLoop);
     </script>
 </body>
 </html>
