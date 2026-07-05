@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Simulador AR — Centrífuga Tubular Industrial</title>
 
-<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,7 +37,6 @@ function computePhysics(){
   const kVisual = Math.max(K_VISUAL_MIN, Math.min(K_VISUAL_MAX, kReal * VISUAL_SPEEDUP));
   const omegaVisual = Math.max(OMEGA_VISUAL_MIN, Math.min(OMEGA_VISUAL_MAX, omega / 60));
  
-  // Simulación de presiones (PSI)
   const pInlet = 12.5 + (SIM.rpm / 1200) * (SIM.rpm / 1200) * 4.2;
   const pOutlet = 4.0 + (SIM.rpm / 2000) * 2.5;
 
@@ -92,7 +91,6 @@ AFRAME.registerComponent('centrifuge-sim', {
     const casingR = this.baseR * this.casingRatio;
     const tubeR = this.baseR * this.tubeRatio;
 
-    // ---- CHASIS Y SOPORTE ESTRUCTURAL ----
     const steelMaterial = 'color:#2b2e33; metalness:0.8; roughness:0.3';
    
     const mainPillar = document.createElement('a-box');
@@ -119,7 +117,6 @@ AFRAME.registerComponent('centrifuge-sim', {
     upperSupport.setAttribute('material', steelMaterial);
     this.structuralBody.appendChild(upperSupport);
 
-    // ---- BASE DE LA MÁQUINA Y BRIDA ----
     const base = document.createElement('a-cylinder');
     base.setAttribute('radius', 0.11);
     base.setAttribute('height', 0.04);
@@ -134,7 +131,6 @@ AFRAME.registerComponent('centrifuge-sim', {
     feedFlange.setAttribute('material', 'color:#495057; metalness:0.8; roughness:0.2');
     this.structuralBody.appendChild(feedFlange);
 
-    // Maxitubo acrílico inferior transparente
     const feedPipe = document.createElement('a-cylinder');
     feedPipe.setAttribute('radius', 0.03);
     feedPipe.setAttribute('height', 0.35);  
@@ -144,7 +140,6 @@ AFRAME.registerComponent('centrifuge-sim', {
 
     this.inflowSourceY = -H - 0.35;
 
-    // Válvula compacta en el costado izquierdo (-X)
     const valveGroup = document.createElement('a-entity');
     valveGroup.setAttribute('position', `-0.045 ${-H - 0.20} 0`);
 
@@ -171,7 +166,6 @@ AFRAME.registerComponent('centrifuge-sim', {
     valveGroup.appendChild(valveWheel);
     this.structuralBody.appendChild(valveGroup);
 
-    // ---- MANÓMETRO ALIMENTACIÓN AL COSTADO DERECHO (+X) ----
     const gaugeInlet = document.createElement('a-entity');
     gaugeInlet.setAttribute('position', `0.055 ${-H - 0.26} 0.02`);
    
@@ -193,7 +187,6 @@ AFRAME.registerComponent('centrifuge-sim', {
     gaugeInlet.appendChild(textInlet);
     this.structuralBody.appendChild(gaugeInlet);
 
-    // Manómetro de Salida (PI-02)
     const gaugeOutlet = document.createElement('a-entity');
     gaugeOutlet.setAttribute('position', `${tubeR + 0.16} ${H + 0.05} 0.04`);
    
@@ -215,7 +208,6 @@ AFRAME.registerComponent('centrifuge-sim', {
     gaugeOutlet.appendChild(textOutlet);
     this.structuralBody.appendChild(gaugeOutlet);
 
-    // ---- CUERPO PRINCIPAL (ROTOR) ----
     this.casing = document.createElement('a-cylinder');
     this.casing.setAttribute('radius', casingR);
     this.casing.setAttribute('height', H * 2);
@@ -238,7 +230,6 @@ AFRAME.registerComponent('centrifuge-sim', {
     this.axis.setAttribute('material', 'color:#ffffff; metalness:1.0; roughness:0.05');
     this.structuralBody.appendChild(this.axis);
 
-    // ---- COLECTORES SUPERIORES ----
     const heavyCollector = document.createElement('a-cylinder');
     heavyCollector.setAttribute('radius', casingR + 0.01);
     heavyCollector.setAttribute('height', 0.04);
@@ -253,7 +244,6 @@ AFRAME.registerComponent('centrifuge-sim', {
     lightCollector.setAttribute('material', 'color:#3a3f44; metalness:0.9; roughness:0.1');
     this.structuralBody.appendChild(lightCollector);
 
-    // Motor Eléctrico
     this.motorGroup = document.createElement('a-entity');
     this.motorGroup.setAttribute('position', `0 ${H + 0.16} 0`);
    
@@ -281,10 +271,8 @@ AFRAME.registerComponent('centrifuge-sim', {
     this.motorGroup.appendChild(motorCap);
     this.structuralBody.appendChild(this.motorGroup);
 
-    // ---- TUBERÍAS DE DESCARGA ----
     const premiumGlass = 'color:#d0ebff; opacity:0.25; transparent:true; shader:standard; metalness:0.98; roughness:0.02; side:double';
    
-    // Derecha: Agua Ligera
     const lightPipeH = document.createElement('a-cylinder');
     lightPipeH.setAttribute('radius', 0.014);
     lightPipeH.setAttribute('height', 0.08);
@@ -302,7 +290,6 @@ AFRAME.registerComponent('centrifuge-sim', {
    
     this.lightOutflowSource = new AFRAME.THREE.Vector3(tubeR + 0.08, H + 0.05, 0);
 
-    // Izquierda: Sílice Pesada
     const heavyPipeH = document.createElement('a-cylinder');
     heavyPipeH.setAttribute('radius', 0.015);
     heavyPipeH.setAttribute('height', 0.08);
@@ -327,7 +314,6 @@ AFRAME.registerComponent('centrifuge-sim', {
     this.cake.setAttribute('material', 'color:#e4572e; opacity:0.12; shader:flat; transparent:true');
     this.structuralBody.appendChild(this.cake);
 
-    // ---- SISTEMAS DE PARTÍCULAS ----
     this.spinGroup = document.createElement('a-entity');
     this.structuralBody.appendChild(this.spinGroup);
 
@@ -379,217 +365,3 @@ AFRAME.registerComponent('centrifuge-sim', {
       sphere.setAttribute('radius', 0.014);
       sphere.setAttribute('material', 'color:#f7cb63; shader:flat; emissive:#e0a41b; emissiveIntensity:0.5');
       this.inflowGroup.appendChild(sphere);
-      this.inflowParticles.push(this.makeInflowParticle(sphere, true));
-    }
-
-    this.el.appendChild(this.structuralBody);
-    this._baseTubeR = tubeR;
-    this._baseCasingR = casingR;
-  },
-
-  makeSilicaParticle: function (el, randomizePhase) {
-    return {
-      el,
-      r0Ratio: 0.05 + Math.random() * 0.12,
-      theta: Math.random() * Math.PI * 2,
-      h: (Math.random() - 0.5) * this.tubeHalfHeight * 1.7,
-      elapsed: randomizePhase ? Math.random() * 1.6 : 0,
-      settled: false,
-      settleTimer: 0
-    };
-  },
-
-  makeOutflowParticle: function(el, randomize, type) {
-    const isLight = type === 'light';
-    const source = isLight ? this.lightOutflowSource : this.heavyOutflowSource;
-    return {
-      el,
-      x0: source.x,
-      y0: source.y,
-      z0: source.z,
-      vy: -0.25 - Math.random() * 0.15,
-      age: randomize ? Math.random() * 1.1 : 0,
-      maxAge: 1.0,
-      seed: Math.random() * 100
-    };
-  },
-
-  makeInflowParticle: function(el, randomize) {
-    return {
-      el,
-      x: (Math.random() - 0.5) * 0.02,
-      y0: this.inflowSourceY,
-      z: (Math.random() - 0.5) * 0.02,
-      vy: 0.28 + Math.random() * 0.08,
-      age: randomize ? Math.random() * 1.2 : 0,
-      maxAge: 1.2
-    };
-  },
-
-  resetParticles: function () {
-    this.settledCount = 0;
-    this.cake.setAttribute('material', 'opacity', 0.12);
-    this.silicaParticles.forEach(p => {
-      Object.assign(p, this.makeSilicaParticle(p.el, false));
-      p.el.setAttribute('material', 'color', '#f2c14e');
-    });
-    this.lightOutflowParticles.forEach(p => Object.assign(p, this.makeOutflowParticle(p.el, false, 'light')));
-    this.heavyOutflowParticles.forEach(p => Object.assign(p, this.makeOutflowParticle(p.el, false, 'heavy')));
-    this.inflowParticles.forEach(p => Object.assign(p, this.makeInflowParticle(p.el, false)));
-  },
-
-  tick: function (time, delta) {
-    const dt = Math.min(delta / 1000, 0.05);
-    const p = computePhysics();
-
-    // CORREGIDO: Escalamos los tazones individualmente para proteger la integridad estructural estática
-    const radiusScaleFactor = SIM.rDrumM / 0.15;
-    this.tube.object3D.scale.set(radiusScaleFactor, 1, radiusScaleFactor);
-    this.casing.object3D.scale.set(radiusScaleFactor, 1, radiusScaleFactor);
-    this.cake.object3D.scale.set(radiusScaleFactor, 1, radiusScaleFactor);
-   
-    const tR = this._baseTubeR;
-    const H = this.tubeHalfHeight;
-
-    if (SIM.paused) return;
-
-    this.spinGroup.object3D.rotation.y += p.omegaVisual * dt;
-
-    this.silicaParticles.forEach(part => {
-      if (part.settled) {
-        part.settleTimer += dt;
-        if (part.settleTimer > 1.8) {
-          this.settledCount = Math.max(0, this.settledCount - 1);
-          Object.assign(part, this.makeSilicaParticle(part.el, false));
-          part.el.setAttribute('material', 'color', '#f2c14e');
-        }
-      } else {
-        part.elapsed += dt;
-        // La física gobierna de forma exacta la posición de renderizado
-        let r = part.r0Ratio * tR * Math.exp(p.kVisual * part.elapsed);
-        if (r >= tR) {
-          r = tR;
-          part.settled = true;
-          part.settleTimer = 0;
-          this.settledCount++;
-          part.el.setAttribute('material', 'color', '#e4572e');
-          const cakeOpacity = Math.min(0.7, 0.12 + this.settledCount * 0.05);
-          this.cake.setAttribute('material', 'opacity', cakeOpacity);
-        }
-        // Ajustamos la posición considerando el factor de escala dinámico de renderizado
-        const x = r * radiusScaleFactor * Math.cos(part.theta);
-        const z = r * radiusScaleFactor * Math.sin(part.theta);
-        part.el.object3D.position.set(x, part.h, z);
-      }
-    });
-
-    this.waterParticles.forEach(w => {
-      w.theta += p.omegaVisual * dt * 0.55;
-      const heightFactor = (w.h + H) / (2 * H);
-      const vortexExpansion = 1.0 + (heightFactor * 0.45);
-     
-      const currentR = w.rBaseRatio * tR * vortexExpansion;
-      const x = Math.min(tR * 0.98, currentR) * radiusScaleFactor * Math.cos(w.theta);
-      const z = Math.min(tR * 0.98, currentR) * radiusScaleFactor * Math.sin(w.theta);
-      w.el.object3D.position.set(x, w.h, z);
-    });
-
-    this.lightOutflowParticles.forEach(outP => {
-      outP.age += dt;
-      if (outP.age >= outP.maxAge) {
-        Object.assign(outP, this.makeOutflowParticle(outP.el, false, 'light'));
-      } else {
-        const sprayFactor = Math.max(0, 1.0 - outP.age * 3.5);
-        const noiseX = Math.sin(time * 0.05 + outP.seed) * 0.007 * sprayFactor;
-        const noiseZ = Math.cos(time * 0.04 + outP.seed) * 0.007 * sprayFactor;
-
-        outP.el.object3D.position.x = outP.x0 + noiseX;
-        outP.el.object3D.position.y = outP.y0 + outP.vy * outP.age;
-        outP.el.object3D.position.z = outP.z0 + noiseZ;
-      }
-    });
-
-    this.heavyOutflowParticles.forEach(outP => {
-      outP.age += dt;
-      if (outP.age >= outP.maxAge) {
-        Object.assign(outP, this.makeOutflowParticle(outP.el, false, 'heavy'));
-      } else {
-        const sprayFactor = Math.max(0, 1.0 - outP.age * 3.5);
-        const noiseX = Math.cos(time * 0.05 + outP.seed) * 0.007 * sprayFactor;
-        const noiseZ = Math.sin(time * 0.04 + outP.seed) * 0.007 * sprayFactor;
-
-        outP.el.object3D.position.x = outP.x0 + noiseX;
-        outP.el.object3D.position.y = outP.y0 + outP.vy * outP.age;
-        outP.el.object3D.position.z = outP.z0 + noiseZ;
-      }
-    });
-
-    this.inflowParticles.forEach(inP => {
-      inP.age += dt;
-      const currentY = inP.y0 + inP.vy * inP.age;
-      if (currentY >= -this.tubeHalfHeight || inP.age >= inP.maxAge) {
-        Object.assign(inP, this.makeInflowParticle(inP.el, false));
-      } else {
-        inP.el.object3D.position.set(inP.x, currentY, inP.z);
-      }
-    });
-
-    if (!this._lastUI || time - this._lastUI > 200) {
-      this._lastUI = time;
-      updateReadouts();
-    }
-  }
-});
-</script>
-
-<style>
-  :root{
-    --steel-dark:#1c1e21;
-    --steel-mid:#33363b;
-    --steel-light:#9aa0a6;
-    --hazard-yellow:#f2c14e;
-    --hazard-red:#e4572e;
-    --readout-teal:#5ec8c2;
-    --panel-bg: rgba(24,26,29,0.95);
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;height:100%;overflow:hidden;font-family:'IBM Plex Mono',monospace;background:transparent;}
-  a-scene{width:100%;height:100%;}
-  #hud{ position:fixed; inset:0; pointer-events:none; z-index:20; }
-
-  #top-bar{ position:absolute; top:0; left:0; right:0; padding:6px 8px; pointer-events:none;
-    display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
-  #top-bar .brand{ font-family:'Oswald',sans-serif; font-weight:700; font-size:9.5px; letter-spacing:0.8px;
-    color:var(--hazard-yellow); background:rgba(24,26,29,0.85); padding:3px 7px; border-radius:3px;
-    border-left:3px solid var(--hazard-yellow); pointer-events:auto; }
-  #mini-readout{ font-size:9.5px; color:var(--readout-teal); background:rgba(24,26,29,0.85);
-    padding:3px 7px; border-radius:3px; pointer-events:auto; text-align:right; }
-
-  #panel-toggle{ position:absolute; bottom:10px; left:50%; transform:translateX(-50%); pointer-events:auto; cursor:pointer;
-    background:var(--hazard-yellow); color:var(--steel-dark); font-family:'Oswald',sans-serif; font-weight:700;
-    font-size:10px; letter-spacing:1px; text-transform:uppercase; padding:6px 14px; border-radius:16px; border:none;
-    box-shadow:0 3px 8px rgba(0,0,0,0.5); z-index:25; }
- 
-  #panel {
-    position:absolute; left:50%; bottom:0; transform:translate(-50%, 100%);
-    width:min(92vw, 315px);
-    background:var(--panel-bg); border:1px solid var(--steel-mid); border-bottom:none;
-    border-radius:10px 10px 0 0;
-    padding:10px 12px 14px; pointer-events:auto; color:#e9e9e9;
-    max-height:48vh; overflow-y:auto;
-    transition:transform 0.22s ease;
-    box-shadow:0 -4px 16px rgba(0,0,0,0.5);
-  }
-  #panel.open{ transform:translate(-50%, 0); }
-  #panel h1{ font-family:'Oswald',sans-serif; font-weight:700; font-size:10.5px; letter-spacing:1px; text-transform:uppercase;
-    margin:0 0 6px; color:var(--hazard-yellow); display:flex; align-items:center; gap:6px; }
-
-  .row{display:flex; align-items:center; gap:6px; margin-bottom:5px;}
-  .row label{ font-size:8.5px; width:78px; flex-shrink:0; text-transform:uppercase; color:var(--steel-light); }
-  .row input[type=range]{ flex:1; accent-color: var(--readout-teal); height:3px; }
-  .row .val{ width:58px; text-align:right; font-size:9px; color:var(--readout-teal); font-weight:600; }
-
-  #readouts{ display:grid; grid-template-columns:1fr 1fr; gap:3px 8px; margin:6px 0; padding:5px 7px;
-    background:var(--steel-dark); border:1px solid var(--steel-mid); border-radius:4px; }
-  #readouts div{font-size:8px; color:var(--steel-light);}
-  #
