@@ -1,291 +1,595 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador Transparente: Centrífuga Tubular RA</title>
-    
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    
-    <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; user-select: none; background-color: #000; }
-        
-        /* Interfaz Gráfica Ajustada a los Requerimientos */
-        #ui-container {
-            position: absolute; bottom: 15px; left: 5%; width: 90%; max-width: 550px;
-            background: rgba(248, 249, 250, 0.98); color: #1e3a8a; padding: 18px;
-            box-sizing: border-box; z-index: 9999; border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4); border: 1px solid rgba(0,0,0,0.1);
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Simulador AR — Centrífuga Tubular Industrial</title>
+
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght=500;700&family=IBM+Plex+Mono:wght=400;600&display=swap" rel="stylesheet">
+
+<script>
+const SIM = {
+  rpm: 2000,
+  rDrumM: 0.15,
+  deltaRho: 1650,
+  paused: false,
+  dp: 20e-6,
+  mu: 1.002e-3,
+  g: 9.81,
+  r0RealM: 0.001
+};
+
+const VISUAL_SPEEDUP = 1.8;
+const K_VISUAL_MIN = 0.15, K_VISUAL_MAX = 4.0;
+const OMEGA_VISUAL_MIN = 0.4, OMEGA_VISUAL_MAX = 8.0;
+
+function omegaFromRPM(rpm){ return 2 * Math.PI * rpm / 60; }
+
+function computePhysics(){
+  const omega = omegaFromRPM(SIM.rpm);
+  const G = (omega * omega * SIM.rDrumM) / SIM.g;
+  const kReal = (SIM.dp * SIM.dp * SIM.deltaRho * omega * omega) / (18 * SIM.mu);
+  const tRealSeconds = kReal > 0 ? Math.log(SIM.rDrumM / SIM.r0RealM) / kReal : Infinity;
+  const kVisual = Math.max(K_VISUAL_MIN, Math.min(K_VISUAL_MAX, kReal * VISUAL_SPEEDUP));
+  const omegaVisual = Math.max(OMEGA_VISUAL_MIN, Math.min(OMEGA_VISUAL_MAX, omega / 60));
+ 
+  // Simulación de presiones (PSI)
+  const pInlet = 12.5 + (SIM.rpm / 1200) * (SIM.rpm / 1200) * 4.2;
+  const pOutlet = 4.0 + (SIM.rpm / 2000) * 2.5;
+
+  return { omega, G, kReal, tRealSeconds, kVisual, omegaVisual, pInlet, pOutlet };
+}
+
+function fmtTime(s){
+  if (!isFinite(s)) return "—";
+  if (s < 60) return s.toFixed(1) + " s";
+  if (s < 3600) return (s/60).toFixed(1) + " min";
+  return (s/3600).toFixed(2) + " h";
+}
+
+function updateReadouts(){
+  const p = computePhysics();
+  const ov = document.getElementById('omega-val');
+  const gv = document.getElementById('g-val');
+  const mg = document.getElementById('mini-g');
+  const tv = document.getElementById('time-val');
+ 
+  if(ov) ov.textContent = p.omega.toFixed(1);
+  if(gv) gv.textContent = p.G.toFixed(0) + "×g";
+  if(mg) mg.textContent = p.G.toFixed(0) + "×g";
+  if(tv) tv.textContent = fmtTime(p.tRealSeconds);
+
+  const txtInlet = document.getElementById('press-inlet-text');
+  const txtOutlet = document.getElementById('press-outlet-text');
+  if(txtInlet) txtInlet.setAttribute('value', `PI-01\n${p.pInlet.toFixed(1)} PSI`);
+  if(txtOutlet) txtOutlet.setAttribute('value', `PI-02: ${p.pOutlet.toFixed(1)} PSI`);
+}
+
+AFRAME.registerComponent('centrifuge-sim', {
+  init: function () {
+    this.baseR = 0.15;
+    this.tubeHalfHeight = 0.30;      
+    this.tubeRatio = 0.32;          
+    this.casingRatio = 0.46;        
+    this.silicaParticles = [];
+    this.waterParticles = [];
+    this.lightOutflowParticles = [];
+    this.heavyOutflowParticles = [];
+    this.inflowParticles = [];
+    this.settledCount = 0;
+   
+    this.numSilica = 26;
+    this.numWater = 18;
+    this.numOutflow = 18;
+    this.numInflow = 22;
+
+    this.structuralBody = document.createElement('a-entity');
+    const H = this.tubeHalfHeight;
+    const casingR = this.baseR * this.casingRatio;
+    const tubeR = this.baseR * this.tubeRatio;
+
+    // ---- CHASIS Y SOPORTE ESTRUCTURAL ----
+    const steelMaterial = 'color:#2b2e33; metalness:0.8; roughness:0.3';
+   
+    const mainPillar = document.createElement('a-box');
+    mainPillar.setAttribute('width', 0.05);
+    mainPillar.setAttribute('height', H * 2 + 0.4);
+    mainPillar.setAttribute('depth', 0.06);
+    mainPillar.setAttribute('position', `0 ${-0.05} ${-casingR - 0.05}`);
+    mainPillar.setAttribute('material', steelMaterial);
+    this.structuralBody.appendChild(mainPillar);
+
+    const lowerSupport = document.createElement('a-box');
+    lowerSupport.setAttribute('width', 0.12);
+    lowerSupport.setAttribute('height', 0.03);
+    lowerSupport.setAttribute('depth', 0.12);
+    lowerSupport.setAttribute('position', `0 ${-H - 0.05} ${-casingR / 2}`);
+    lowerSupport.setAttribute('material', steelMaterial);
+    this.structuralBody.appendChild(lowerSupport);
+
+    const upperSupport = document.createElement('a-box');
+    upperSupport.setAttribute('width', 0.12);
+    upperSupport.setAttribute('height', 0.03);
+    upperSupport.setAttribute('depth', 0.14);
+    upperSupport.setAttribute('position', `0 ${H + 0.12} ${-casingR / 2}`);
+    upperSupport.setAttribute('material', steelMaterial);
+    this.structuralBody.appendChild(upperSupport);
+
+    // ---- BASE DE LA MÁQUINA Y BRIDA ----
+    const base = document.createElement('a-cylinder');
+    base.setAttribute('radius', 0.11);
+    base.setAttribute('height', 0.04);
+    base.setAttribute('position', `0 ${-H - 0.02} 0`);
+    base.setAttribute('material', 'color:#111215; metalness:0.9; roughness:0.2');
+    this.structuralBody.appendChild(base);
+
+    const feedFlange = document.createElement('a-cylinder');
+    feedFlange.setAttribute('radius', 0.045);
+    feedFlange.setAttribute('height', 0.015);
+    feedFlange.setAttribute('position', `0 ${-H - 0.04} 0`);
+    feedFlange.setAttribute('material', 'color:#495057; metalness:0.8; roughness:0.2');
+    this.structuralBody.appendChild(feedFlange);
+
+    // Maxitubo acrílico inferior transparente
+    const feedPipe = document.createElement('a-cylinder');
+    feedPipe.setAttribute('radius', 0.03);
+    feedPipe.setAttribute('height', 0.35);  
+    feedPipe.setAttribute('position', `0 ${-H - 0.195} 0`);
+    feedPipe.setAttribute('material', 'color:#aed8f2; opacity:0.18; transparent:true; shader:standard; metalness:0.95; roughness:0.05; side:double');
+    this.structuralBody.appendChild(feedPipe);
+
+    this.inflowSourceY = -H - 0.35;
+
+    // Válvula compacta en el costado izquierdo (-X)
+    const valveGroup = document.createElement('a-entity');
+    valveGroup.setAttribute('position', `-0.045 ${-H - 0.20} 0`);
+
+    const valveBody = document.createElement('a-box');
+    valveBody.setAttribute('width', 0.04);
+    valveBody.setAttribute('height', 0.03);
+    valveBody.setAttribute('depth', 0.03);
+    valveBody.setAttribute('material', 'color:#a82323; metalness:0.6; roughness:0.4');
+    valveGroup.appendChild(valveBody);
+
+    const valveNeck = document.createElement('a-cylinder');
+    valveNeck.setAttribute('radius', 0.005);
+    valveNeck.setAttribute('height', 0.02);
+    valveNeck.setAttribute('position', '0 0 0.02');
+    valveNeck.setAttribute('rotation', '90 0 0');
+    valveNeck.setAttribute('material', 'color:#495057; metalness:0.8; roughness:0.2');
+    valveGroup.appendChild(valveNeck);
+
+    const valveWheel = document.createElement('a-torus');
+    valveWheel.setAttribute('radius', 0.015);
+    valveWheel.setAttribute('radius-tubular', 0.0035);
+    valveWheel.setAttribute('position', '0 0 0.032');
+    valveWheel.setAttribute('material', 'color:#f2c14e; metalness:0.4; roughness:0.5');
+    valveGroup.appendChild(valveWheel);
+    this.structuralBody.appendChild(valveGroup);
+
+    // ---- MANÓMETRO ALIMENTACIÓN AL COSTADO DERECHO (+X) ----
+    const gaugeInlet = document.createElement('a-entity');
+    gaugeInlet.setAttribute('position', `0.055 ${-H - 0.26} 0.02`);
+   
+    const gaugeCase1 = document.createElement('a-cylinder');
+    gaugeCase1.setAttribute('radius', 0.016);
+    gaugeCase1.setAttribute('height', 0.008);
+    gaugeCase1.setAttribute('rotation', '90 0 0');
+    gaugeCase1.setAttribute('material', 'color:#eceff1; metalness:0.7; roughness:0.2');
+    gaugeInlet.appendChild(gaugeCase1);
+
+    const textInlet = document.createElement('a-text');
+    textInlet.setAttribute('id', 'press-inlet-text');
+    textInlet.setAttribute('value', 'PI-01\n-- PSI');
+    textInlet.setAttribute('color', '#1c1e21');
+    textInlet.setAttribute('align', 'center');
+    textInlet.setAttribute('width', 0.22);
+    textInlet.setAttribute('position', '0 0 0.005');
+    textInlet.setAttribute('font', 'mozillavr');
+    gaugeInlet.appendChild(textInlet);
+    this.structuralBody.appendChild(gaugeInlet);
+
+    // Manómetro de Salida (PI-02)
+    const gaugeOutlet = document.createElement('a-entity');
+    gaugeOutlet.setAttribute('position', `${tubeR + 0.16} ${H + 0.05} 0.04`);
+   
+    const gaugeCase2 = document.createElement('a-cylinder');
+    gaugeCase2.setAttribute('radius', 0.022);
+    gaugeCase2.setAttribute('height', 0.01);
+    gaugeCase2.setAttribute('rotation', '90 0 0');
+    gaugeCase2.setAttribute('material', 'color:#eceff1; metalness:0.7; roughness:0.2');
+    gaugeOutlet.appendChild(gaugeCase2);
+
+    const textOutlet = document.createElement('a-text');
+    textOutlet.setAttribute('id', 'press-outlet-text');
+    textOutlet.setAttribute('value', 'PI-02: -- PSI');
+    textOutlet.setAttribute('color', '#1c1e21');
+    textOutlet.setAttribute('align', 'center');
+    textOutlet.setAttribute('width', 0.28);
+    textOutlet.setAttribute('position', '0 0 0.006');
+    textOutlet.setAttribute('font', 'mozillavr');
+    gaugeOutlet.appendChild(textOutlet);
+    this.structuralBody.appendChild(gaugeOutlet);
+
+    // ---- CUERPO PRINCIPAL (ROTOR) ----
+    this.casing = document.createElement('a-cylinder');
+    this.casing.setAttribute('radius', casingR);
+    this.casing.setAttribute('height', H * 2);
+    this.casing.setAttribute('open-ended', 'true');
+    this.casing.setAttribute('segments-radial', 24);
+    this.casing.setAttribute('material', 'color:#ffffff; opacity:0.15; shader:standard; metalness:0.8; roughness:0.2; side:double; transparent:true');
+    this.structuralBody.appendChild(this.casing);
+
+    this.tube = document.createElement('a-cylinder');
+    this.tube.setAttribute('radius', tubeR);
+    this.tube.setAttribute('height', H * 1.95);
+    this.tube.setAttribute('open-ended', 'true');
+    this.tube.setAttribute('material', 'color:#5ec8c2; opacity:0.12; shader:flat; side:double; transparent:true');
+    this.structuralBody.appendChild(this.tube);
+
+    this.axis = document.createElement('a-cylinder');
+    this.axis.setAttribute('radius', 0.006);
+    this.axis.setAttribute('height', H * 2 + 0.28);
+    this.axis.setAttribute('position', '0 0.08 0');
+    this.axis.setAttribute('material', 'color:#ffffff; metalness:1.0; roughness:0.05');
+    this.structuralBody.appendChild(this.axis);
+
+    // ---- COLECTORES SUPERIORES ----
+    const heavyCollector = document.createElement('a-cylinder');
+    heavyCollector.setAttribute('radius', casingR + 0.01);
+    heavyCollector.setAttribute('height', 0.04);
+    heavyCollector.setAttribute('position', `0 ${H + 0.02} 0`);
+    heavyCollector.setAttribute('material', 'color:#2a2d32; metalness:0.9; roughness:0.1');
+    this.structuralBody.appendChild(heavyCollector);
+
+    const lightCollector = document.createElement('a-cylinder');
+    lightCollector.setAttribute('radius', tubeR + 0.02);
+    lightCollector.setAttribute('height', 0.03);
+    lightCollector.setAttribute('position', `0 ${H + 0.05} 0`);
+    lightCollector.setAttribute('material', 'color:#3a3f44; metalness:0.9; roughness:0.1');
+    this.structuralBody.appendChild(lightCollector);
+
+    // Motor Eléctrico
+    this.motorGroup = document.createElement('a-entity');
+    this.motorGroup.setAttribute('position', `0 ${H + 0.16} 0`);
+   
+    const motorCasing = document.createElement('a-cylinder');
+    motorCasing.setAttribute('radius', 0.048);
+    motorCasing.setAttribute('height', 0.09);
+    motorCasing.setAttribute('rotation', '0 0 90');
+    motorCasing.setAttribute('position', '0.05 0 0');
+    motorCasing.setAttribute('material', 'color:#22252a; metalness:0.8; roughness:0.3');
+    this.motorGroup.appendChild(motorCasing);
+
+    const coolingFins = document.createElement('a-box');
+    coolingFins.setAttribute('width', 0.018);
+    coolingFins.setAttribute('height', 0.065);
+    coolingFins.setAttribute('depth', 0.065);
+    coolingFins.setAttribute('position', '0.10 0 0');
+    coolingFins.setAttribute('material', 'color:#111215; metalness:0.7; roughness:0.4');
+    this.motorGroup.appendChild(coolingFins);
+
+    const motorCap = document.createElement('a-cylinder');
+    motorCap.setAttribute('radius', 0.038);
+    motorCap.setAttribute('height', 0.03);
+    motorCap.setAttribute('position', '0 -0.01 0');
+    motorCap.setAttribute('material', 'color:#ffffff; metalness:0.95; roughness:0.05');
+    this.motorGroup.appendChild(motorCap);
+    this.structuralBody.appendChild(this.motorGroup);
+
+    // ---- TUBERÍAS DE DESCARGA ----
+    const premiumGlass = 'color:#d0ebff; opacity:0.25; transparent:true; shader:standard; metalness:0.98; roughness:0.02; side:double';
+   
+    // Derecha: Agua Ligera
+    const lightPipeH = document.createElement('a-cylinder');
+    lightPipeH.setAttribute('radius', 0.014);
+    lightPipeH.setAttribute('height', 0.08);
+    lightPipeH.setAttribute('rotation', '0 0 90');
+    lightPipeH.setAttribute('position', `${tubeR + 0.04} ${H + 0.05} 0`);
+    lightPipeH.setAttribute('material', premiumGlass);
+    this.structuralBody.appendChild(lightPipeH);
+
+    const lightPipeV = document.createElement('a-cylinder');
+    lightPipeV.setAttribute('radius', 0.014);
+    lightPipeV.setAttribute('height', 0.28);
+    lightPipeV.setAttribute('position', `${tubeR + 0.08} ${H - 0.07} 0`);
+    lightPipeV.setAttribute('material', premiumGlass);
+    this.structuralBody.appendChild(lightPipeV);
+   
+    this.lightOutflowSource = new AFRAME.THREE.Vector3(tubeR + 0.08, H + 0.05, 0);
+
+    // Izquierda: Sílice Pesada
+    const heavyPipeH = document.createElement('a-cylinder');
+    heavyPipeH.setAttribute('radius', 0.015);
+    heavyPipeH.setAttribute('height', 0.08);
+    heavyPipeH.setAttribute('rotation', '0 0 90');
+    heavyPipeH.setAttribute('position', `${-casingR - 0.04} ${H + 0.02} 0`);
+    heavyPipeH.setAttribute('material', premiumGlass);
+    this.structuralBody.appendChild(heavyPipeH);
+
+    const heavyPipeV = document.createElement('a-cylinder');
+    heavyPipeV.setAttribute('radius', 0.015);
+    heavyPipeV.setAttribute('height', 0.28);
+    heavyPipeV.setAttribute('position', `${-casingR - 0.08} ${H - 0.10} 0`);
+    heavyPipeV.setAttribute('material', premiumGlass);
+    this.structuralBody.appendChild(heavyPipeV);
+
+    this.heavyOutflowSource = new AFRAME.THREE.Vector3(-casingR - 0.08, H + 0.02, 0);
+
+    this.cake = document.createElement('a-torus');
+    this.cake.setAttribute('radius', tubeR * 0.95);
+    this.cake.setAttribute('radius-tubular', 0.009);
+    this.cake.setAttribute('rotation', '90 0 0');
+    this.cake.setAttribute('material', 'color:#e4572e; opacity:0.12; shader:flat; transparent:true');
+    this.structuralBody.appendChild(this.cake);
+
+    // ---- SISTEMAS DE PARTÍCULAS ----
+    this.spinGroup = document.createElement('a-entity');
+    this.structuralBody.appendChild(this.spinGroup);
+
+    this.outflowGroup = document.createElement('a-entity');
+    this.structuralBody.appendChild(this.outflowGroup);
+
+    this.inflowGroup = document.createElement('a-entity');
+    this.structuralBody.appendChild(this.inflowGroup);
+
+    for (let i = 0; i < this.numSilica; i++) {
+      const sphere = document.createElement('a-sphere');
+      sphere.setAttribute('radius', 0.0075);
+      sphere.setAttribute('material', 'color:#f2c14e; shader:flat; emissive:#f2c14e; emissiveIntensity:0.3');
+      this.spinGroup.appendChild(sphere);
+      this.silicaParticles.push(this.makeSilicaParticle(sphere, true));
+    }
+   
+    for (let i = 0; i < this.numWater; i++) {
+      const sphere = document.createElement('a-sphere');
+      sphere.setAttribute('radius', 0.0055);
+      sphere.setAttribute('material', 'color:#5ec8c2; shader:flat; opacity:0.75; transparent:true');
+      this.spinGroup.appendChild(sphere);
+     
+      const normalizedH = (Math.random() - 0.5) * H * 1.7;
+      this.waterParticles.push({
+        el: sphere,
+        rBaseRatio: 0.15 + Math.random() * 0.45,
+        theta: Math.random() * Math.PI * 2,
+        h: normalizedH
+      });
+    }
+
+    for (let i = 0; i < this.numOutflow; i++) {
+      const spL = document.createElement('a-sphere');
+      spL.setAttribute('radius', 0.005);
+      spL.setAttribute('material', 'color:#5ec8c2; shader:flat');
+      this.outflowGroup.appendChild(spL);
+      this.lightOutflowParticles.push(this.makeOutflowParticle(spL, true, 'light'));
+
+      const spH = document.createElement('a-sphere');
+      spH.setAttribute('radius', 0.0055);
+      spH.setAttribute('material', 'color:#2f7d5c; shader:flat');
+      this.outflowGroup.appendChild(spH);
+      this.heavyOutflowParticles.push(this.makeOutflowParticle(spH, true, 'heavy'));
+    }
+
+    for (let i = 0; i < this.numInflow; i++) {
+      const sphere = document.createElement('a-sphere');
+      sphere.setAttribute('radius', 0.014);
+      sphere.setAttribute('material', 'color:#f7cb63; shader:flat; emissive:#e0a41b; emissiveIntensity:0.5');
+      this.inflowGroup.appendChild(sphere);
+      this.inflowParticles.push(this.makeInflowParticle(sphere, true));
+    }
+
+    this.el.appendChild(this.structuralBody);
+    this._baseTubeR = tubeR;
+    this._baseCasingR = casingR;
+  },
+
+  makeSilicaParticle: function (el, randomizePhase) {
+    return {
+      el,
+      r0Ratio: 0.05 + Math.random() * 0.12,
+      theta: Math.random() * Math.PI * 2,
+      h: (Math.random() - 0.5) * this.tubeHalfHeight * 1.7,
+      elapsed: randomizePhase ? Math.random() * 1.6 : 0,
+      settled: false,
+      settleTimer: 0
+    };
+  },
+
+  makeOutflowParticle: function(el, randomize, type) {
+    const isLight = type === 'light';
+    const source = isLight ? this.lightOutflowSource : this.heavyOutflowSource;
+    return {
+      el,
+      x0: source.x,
+      y0: source.y,
+      z0: source.z,
+      vy: -0.25 - Math.random() * 0.15,
+      age: randomize ? Math.random() * 1.1 : 0,
+      maxAge: 1.0,
+      seed: Math.random() * 100
+    };
+  },
+
+  makeInflowParticle: function(el, randomize) {
+    return {
+      el,
+      x: (Math.random() - 0.5) * 0.02,
+      y0: this.inflowSourceY,
+      z: (Math.random() - 0.5) * 0.02,
+      vy: 0.28 + Math.random() * 0.08,
+      age: randomize ? Math.random() * 1.2 : 0,
+      maxAge: 1.2
+    };
+  },
+
+  resetParticles: function () {
+    this.settledCount = 0;
+    this.cake.setAttribute('material', 'opacity', 0.12);
+    this.silicaParticles.forEach(p => {
+      Object.assign(p, this.makeSilicaParticle(p.el, false));
+      p.el.setAttribute('material', 'color', '#f2c14e');
+    });
+    this.lightOutflowParticles.forEach(p => Object.assign(p, this.makeOutflowParticle(p.el, false, 'light')));
+    this.heavyOutflowParticles.forEach(p => Object.assign(p, this.makeOutflowParticle(p.el, false, 'heavy')));
+    this.inflowParticles.forEach(p => Object.assign(p, this.makeInflowParticle(p.el, false)));
+  },
+
+  tick: function (time, delta) {
+    const dt = Math.min(delta / 1000, 0.05);
+    const p = computePhysics();
+
+    // CORREGIDO: Escalamos los tazones individualmente para proteger la integridad estructural estática
+    const radiusScaleFactor = SIM.rDrumM / 0.15;
+    this.tube.object3D.scale.set(radiusScaleFactor, 1, radiusScaleFactor);
+    this.casing.object3D.scale.set(radiusScaleFactor, 1, radiusScaleFactor);
+    this.cake.object3D.scale.set(radiusScaleFactor, 1, radiusScaleFactor);
+   
+    const tR = this._baseTubeR;
+    const H = this.tubeHalfHeight;
+
+    if (SIM.paused) return;
+
+    this.spinGroup.object3D.rotation.y += p.omegaVisual * dt;
+
+    this.silicaParticles.forEach(part => {
+      if (part.settled) {
+        part.settleTimer += dt;
+        if (part.settleTimer > 1.8) {
+          this.settledCount = Math.max(0, this.settledCount - 1);
+          Object.assign(part, this.makeSilicaParticle(part.el, false));
+          part.el.setAttribute('material', 'color', '#f2c14e');
         }
-
-        .slider-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
-        .slider-box { display: flex; flex-direction: column; }
-        .slider-box label { font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
-        .slider { width: 100%; accent-color: #ea580c; cursor: pointer; }
-        .slider-box .val { font-size: 14px; font-weight: 700; color: #ea580c; margin-top: 2px; font-family: monospace; }
-
-        /* Panel Central de Datos Matemáticos */
-        .metrics-row {
-            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
-            background: #ffffff; padding: 12px; border-radius: 8px;
-            margin-bottom: 14px; border: 1px solid #cbd5e1; text-align: center;
+      } else {
+        part.elapsed += dt;
+        // La física gobierna de forma exacta la posición de renderizado
+        let r = part.r0Ratio * tR * Math.exp(p.kVisual * part.elapsed);
+        if (r >= tR) {
+          r = tR;
+          part.settled = true;
+          part.settleTimer = 0;
+          this.settledCount++;
+          part.el.setAttribute('material', 'color', '#e4572e');
+          const cakeOpacity = Math.min(0.7, 0.12 + this.settledCount * 0.05);
+          this.cake.setAttribute('material', 'opacity', cakeOpacity);
         }
-        .metric-card { font-size: 12px; color: #475569; font-weight: 600; }
-        .metric-card span { display: block; font-size: 14px; font-weight: 700; color: #0f172a; margin-top: 4px; font-family: monospace; }
+        // Ajustamos la posición considerando el factor de escala dinámico de renderizado
+        const x = r * radiusScaleFactor * Math.cos(part.theta);
+        const z = r * radiusScaleFactor * Math.sin(part.theta);
+        part.el.object3D.position.set(x, part.h, z);
+      }
+    });
 
-        /* Leyenda Técnica */
-        .legend-container { display: flex; justify-content: center; gap: 20px; font-size: 12px; font-weight: 700; margin-bottom: 14px; }
-        .legend-item { display: flex; align-items: center; gap: 6px; }
-        .dot-silice { width: 12px; height: 12px; background-color: #ea580c; border-radius: 50%; }
-        .dot-agua { width: 12px; height: 12px; background-color: #3b82f6; border-radius: 50%; }
-        .dot-torta { width: 12px; height: 12px; background-color: #9333ea; border-radius: 50%; }
+    this.waterParticles.forEach(w => {
+      w.theta += p.omegaVisual * dt * 0.55;
+      const heightFactor = (w.h + H) / (2 * H);
+      const vortexExpansion = 1.0 + (heightFactor * 0.45);
+     
+      const currentR = w.rBaseRatio * tR * vortexExpansion;
+      const x = Math.min(tR * 0.98, currentR) * radiusScaleFactor * Math.cos(w.theta);
+      const z = Math.min(tR * 0.98, currentR) * radiusScaleFactor * Math.sin(w.theta);
+      w.el.object3D.position.set(x, w.h, z);
+    });
 
-        /* Botones de Operación */
-        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .btn-base {
-            border: none; padding: 14px; font-size: 13px; font-weight: 700;
-            text-transform: uppercase; border-radius: 8px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 6px;
-            color: white; transition: background 0.2s;
-        }
-        #btn-action-pausa { background-color: #10b981; }
-        #btn-action-pausa:hover { background-color: #059669; }
-        #btn-action-pausa.pausado { background-color: #ef4444; }
-        #btn-action-reset { background-color: #3b82f6; }
-        #btn-action-reset:hover { background-color: #2563eb; }
-    </style>
-</head>
-<body>
+    this.lightOutflowParticles.forEach(outP => {
+      outP.age += dt;
+      if (outP.age >= outP.maxAge) {
+        Object.assign(outP, this.makeOutflowParticle(outP.el, false, 'light'));
+      } else {
+        const sprayFactor = Math.max(0, 1.0 - outP.age * 3.5);
+        const noiseX = Math.sin(time * 0.05 + outP.seed) * 0.007 * sprayFactor;
+        const noiseZ = Math.cos(time * 0.04 + outP.seed) * 0.007 * sprayFactor;
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
-        <a-marker preset="hiro">
-            
-            <a-entity id="centrifuga-industrial" position="0 0 0" scale="1.1 1.1 1.1">
-                
-                <a-cylinder position="0 0.5 0" radius="0.30" height="1.0" 
-                            color="#e2e8f0" opacity="0.05" material="transparent: true; side: double; roughness: 0.1">
-                </a-cylinder>
+        outP.el.object3D.position.x = outP.x0 + noiseX;
+        outP.el.object3D.position.y = outP.y0 + outP.vy * outP.age;
+        outP.el.object3D.position.z = outP.z0 + noiseZ;
+      }
+    });
 
-                <a-cylinder id="rotor-bowl" position="0 0.5 0" radius="0.22" height="0.9" 
-                            color="#93c5fd" opacity="0.12" material="transparent: true; side: double; roughness: 0.1">
-                </a-cylinder>
+    this.heavyOutflowParticles.forEach(outP => {
+      outP.age += dt;
+      if (outP.age >= outP.maxAge) {
+        Object.assign(outP, this.makeOutflowParticle(outP.el, false, 'heavy'));
+      } else {
+        const sprayFactor = Math.max(0, 1.0 - outP.age * 3.5);
+        const noiseX = Math.cos(time * 0.05 + outP.seed) * 0.007 * sprayFactor;
+        const noiseZ = Math.sin(time * 0.04 + outP.seed) * 0.007 * sprayFactor;
 
-                <a-cylinder position="0 0.5 0" radius="0.01" height="1.05" color="#475569" metalness="0.7"></a-cylinder>
+        outP.el.object3D.position.x = outP.x0 + noiseX;
+        outP.el.object3D.position.y = outP.y0 + outP.vy * outP.age;
+        outP.el.object3D.position.z = outP.z0 + noiseZ;
+      }
+    });
 
-                <a-cylinder position="0 1.02 0" radius="0.32" height="0.05" color="#64748b" metalness="0.5"></a-cylinder>
-                <a-box position="0 1.15 0" width="0.35" height="0.2" depth="0.35" color="#475569"></a-box>
-                <a-cylinder position="0.15 1.18 0" radius="0.03" height="0.08" color="#cbd5e1" opacity="0.7"></a-cylinder>
-                <a-cylinder position="0 -0.03 0" radius="0.32" height="0.06" color="#475569"></a-cylinder>
+    this.inflowParticles.forEach(inP => {
+      inP.age += dt;
+      const currentY = inP.y0 + inP.vy * inP.age;
+      if (currentY >= -this.tubeHalfHeight || inP.age >= inP.maxAge) {
+        Object.assign(inP, this.makeInflowParticle(inP.el, false));
+      } else {
+        inP.el.object3D.position.set(inP.x, currentY, inP.z);
+      }
+    });
 
-                <a-entity position="-0.24 0.92 0" rotation="0 0 30">
-                    <a-cylinder radius="0.025" height="0.25" color="#475569" opacity="0.6" material="transparent: true"></a-cylinder>
-                </a-entity>
-                <a-entity position="0.24 0.92 0" rotation="0 0 -30">
-                    <a-cylinder radius="0.025" height="0.25" color="#475569" opacity="0.6" material="transparent: true"></a-cylinder>
-                </a-entity>
+    if (!this._lastUI || time - this._lastUI > 200) {
+      this._lastUI = time;
+      updateReadouts();
+    }
+  }
+});
+</script>
 
-                <a-cylinder position="0 -0.08 0" rotation="90 0 0" radius="0.018" height="0.4" color="#334155"></a-cylinder>
+<style>
+  :root{
+    --steel-dark:#1c1e21;
+    --steel-mid:#33363b;
+    --steel-light:#9aa0a6;
+    --hazard-yellow:#f2c14e;
+    --hazard-red:#e4572e;
+    --readout-teal:#5ec8c2;
+    --panel-bg: rgba(24,26,29,0.95);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;font-family:'IBM Plex Mono',monospace;background:transparent;}
+  a-scene{width:100%;height:100%;}
+  #hud{ position:fixed; inset:0; pointer-events:none; z-index:20; }
 
-                <a-cylinder id="nucleo-agua" position="0 0.5 0" radius="0.07" height="0.88" 
-                            color="#3b82f6" opacity="0.25" material="transparent: true">
-                </a-cylinder>
+  #top-bar{ position:absolute; top:0; left:0; right:0; padding:6px 8px; pointer-events:none;
+    display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  #top-bar .brand{ font-family:'Oswald',sans-serif; font-weight:700; font-size:9.5px; letter-spacing:0.8px;
+    color:var(--hazard-yellow); background:rgba(24,26,29,0.85); padding:3px 7px; border-radius:3px;
+    border-left:3px solid var(--hazard-yellow); pointer-events:auto; }
+  #mini-readout{ font-size:9.5px; color:var(--readout-teal); background:rgba(24,26,29,0.85);
+    padding:3px 7px; border-radius:3px; pointer-events:auto; text-align:right; }
 
-                <a-entity id="grupo-particulas"></a-entity>
+  #panel-toggle{ position:absolute; bottom:10px; left:50%; transform:translateX(-50%); pointer-events:auto; cursor:pointer;
+    background:var(--hazard-yellow); color:var(--steel-dark); font-family:'Oswald',sans-serif; font-weight:700;
+    font-size:10px; letter-spacing:1px; text-transform:uppercase; padding:6px 14px; border-radius:16px; border:none;
+    box-shadow:0 3px 8px rgba(0,0,0,0.5); z-index:25; }
+ 
+  #panel {
+    position:absolute; left:50%; bottom:0; transform:translate(-50%, 100%);
+    width:min(92vw, 315px);
+    background:var(--panel-bg); border:1px solid var(--steel-mid); border-bottom:none;
+    border-radius:10px 10px 0 0;
+    padding:10px 12px 14px; pointer-events:auto; color:#e9e9e9;
+    max-height:48vh; overflow-y:auto;
+    transition:transform 0.22s ease;
+    box-shadow:0 -4px 16px rgba(0,0,0,0.5);
+  }
+  #panel.open{ transform:translate(-50%, 0); }
+  #panel h1{ font-family:'Oswald',sans-serif; font-weight:700; font-size:10.5px; letter-spacing:1px; text-transform:uppercase;
+    margin:0 0 6px; color:var(--hazard-yellow); display:flex; align-items:center; gap:6px; }
 
-            </a-entity>
-            
-        </a-marker>
-        <a-entity camera></a-entity>
-    </a-scene>
+  .row{display:flex; align-items:center; gap:6px; margin-bottom:5px;}
+  .row label{ font-size:8.5px; width:78px; flex-shrink:0; text-transform:uppercase; color:var(--steel-light); }
+  .row input[type=range]{ flex:1; accent-color: var(--readout-teal); height:3px; }
+  .row .val{ width:58px; text-align:right; font-size:9px; color:var(--readout-teal); font-weight:600; }
 
-    <div id="ui-container">
-        
-        <div class="slider-grid">
-            <div class="slider-box">
-                <label for="s-rpm">Velocidad (RPM)</label>
-                <input type="range" id="s-rpm" class="slider" min="0" max="25000" step="500" value="20000">
-                <span id="v-rpm" class="val">20000</span>
-            </div>
-            <div class="slider-box">
-                <label for="s-radio">Radio Tazón (m)</label>
-                <input type="range" id="s-radio" class="slider" min="0.01" max="0.30" step="0.01" value="0.01">
-                <span id="v-radio" class="val">0.01 m</span>
-            </div>
-            <div class="slider-box">
-                <label for="s-delta">Δρ (Diferencia ρ)</label>
-                <input type="range" id="s-delta" class="slider" min="500" max="4000" step="100" value="3000">
-                <span id="v-delta" class="val">3000 kg/m³</span>
-            </div>
-        </div>
-
-        <div class="metrics-row">
-            <div class="metric-card">ω (Vel. Angular) <span id="out-omega">0.00 rad/s</span></div>
-            <div class="metric-card">Factor G (FCR) <span id="out-g">0.0</span></div>
-            <div class="metric-card">vt (Sedimentación) <span id="out-vt">0.00e+0 m/s</span></div>
-        </div>
-
-        <div class="legend-container">
-            <div class="legend-item"><span class="dot-silice"></span> Sílice (Sólido)</div>
-            <div class="legend-item"><span class="dot-agua"></span> Agua (Líquido)</div>
-            <div class="legend-item"><span class="dot-torta"></span> Torta Compactada</div>
-        </div>
-
-        <div class="btn-row">
-            <button id="btn-action-pausa" class="btn-base">⏸ PAUSAR</button>
-            <button id="btn-action-reset" class="btn-base">🔄 REINICIAR MEZCLA</button>
-        </div>
-    </div>
-
-    <script>
-        // --- MOTOR FÍSICO CIENTÍFICO ---
-        let isRunning = true;
-        const dp = 30e-6;        // Diámetro micrométrico de la partícula
-        const viscosidad = 1e-3; // Viscosidad del medio acuoso
-        const gravedad = 9.81;
-
-        let rpm = 20000;
-        let radioTazon = 0.01;
-        let deltaRho = 3000;
-
-        const maxParticulas = 160;
-        let listaParticulas = [];
-
-        // Conexiones DOM de la Interfaz
-        const sRPM = document.getElementById('s-rpm');
-        const sRadio = document.getElementById('s-radio');
-        const sDelta = document.getElementById('s-delta');
-        const vRPM = document.getElementById('v-rpm');
-        const vRadio = document.getElementById('v-radio');
-        const vDelta = document.getElementById('v-delta');
-        const outOmega = document.getElementById('out-omega');
-        const outG = document.getElementById('out-g');
-        const outVt = document.getElementById('out-vt');
-        const btnPausa = document.getElementById('btn-action-pausa');
-        const btnReset = document.getElementById('btn-action-reset');
-        const contenedor = document.getElementById('grupo-particulas');
-        const rotorBowl = document.getElementById('rotor-bowl');
-        const nucleoAgua = document.getElementById('nucleo-agua');
-
-        // --- FLUJO Y DISPERSIÓN DE PARTÍCULAS ---
-        function inicializarFluido() {
-            contenedor.innerHTML = "";
-            listaParticulas = [];
-
-            // El radio límite visual real para evitar que se salgan del renderizado es de 0.22
-            let rLimiteEfectivo = radioTazon === 0.01 ? 0.22 : radioTazon;
-
-            for (let i = 0; i < maxParticulas; i++) {
-                let rIni = Math.random() * (rLimiteEfectivo * 0.8);
-                let angIni = Math.random() * Math.PI * 2; // Distribución 360° visible a través del cristal
-                let yIni = Math.random() * 0.78 + 0.11;
-
-                let esfera = document.createElement('a-sphere');
-                esfera.setAttribute('radius', '0.009');
-                esfera.setAttribute('color', '#ea580c'); // Naranja inicial (Sílice dispersa)
-                esfera.setAttribute('opacity', '0.9');
-                contenedor.appendChild(esfera);
-
-                listaParticulas.push({
-                    elemento: esfera,
-                    r: rIni,
-                    angulo: angIni,
-                    y: yIni,
-                    estado: 'silice'
-                });
-            }
-        }
-
-        function sincronizarSimulacion() {
-            rpm = parseFloat(sRPM.value);
-            radioTazon = parseFloat(sRadio.value);
-            deltaRho = parseFloat(sDelta.value);
-
-            vRPM.textContent = rpm;
-            vRadio.textContent = radioTazon.toFixed(2) + " m";
-            vDelta.textContent = deltaRho + " kg/m³";
-
-            let factorEscala = radioTazon / 0.22;
-            if(factorEscala < 0.2) factorEscala = 0.2; 
-            rotorBowl.setAttribute('scale', `${factorEscala} 1 ${factorEscala}`);
-            nucleoAgua.setAttribute('scale', `${factorEscala * 0.4} 1 ${factorEscala * 0.4}`);
-        }
-
-        sRPM.addEventListener('input', sincronizarSimulacion);
-        sRadio.addEventListener('input', () => { sincronizarSimulacion(); inicializarFluido(); });
-        sDelta.addEventListener('input', sincronizarSimulacion);
-
-        btnPausa.addEventListener('click', () => {
-            isRunning = !isRunning;
-            if (isRunning) {
-                btnPausa.textContent = "⏸ PAUSAR";
-                btnPausa.classList.remove('pausado');
-            } else {
-                btnPausa.textContent = "▶ CONTINUAR";
-                btnPausa.classList.add('pausado');
-            }
-        });
-
-        btnReset.addEventListener('click', inicializarFluido);
-
-        // --- BUCLE DINÁMICO DE SEPARACIÓN ---
-        let tiempoAnterior = performance.now();
-
-        function renderLoop(tiempoActual) {
-            let dt = (tiempoActual - tiempoAnterior) / 1000;
-            tiempoAnterior = tiempoActual;
-            if (dt > 0.1) dt = 0.1;
-
-            let rCalculo = radioTazon === 0.01 ? 0.22 : radioTazon;
-            let omega = (2 * Math.PI * rpm) / 60;
-            let factorG = (Math.pow(omega, 2) * rCalculo) / gravedad;
-            let vtMax = (Math.pow(dp, 2) * deltaRho * Math.pow(omega, 2) * rCalculo) / (18 * viscosidad);
-
-            outOmega.textContent = omega.toFixed(2) + " rad/s";
-            outG.textContent = rpm > 0 ? factorG.toFixed(1) : "0.0";
-            outVt.textContent = rpm > 0 ? vtMax.toExponential(3) + " m/s" : "0.000e+0 m/s";
-
-            if (isRunning && rpm > 0) {
-                listaParticulas.forEach(p => {
-                    if (p.estado === 'silice') {
-                        // Separación radial por Ley de Stokes
-                        let vtLocal = (Math.pow(dp, 2) * deltaRho * Math.pow(omega, 2) * p.r) / (18 * viscosidad);
-                        p.r += vtLocal * dt * 12; // Velocidad amplificada para mejor visualización en RA
-                        
-                        // Rotación e hidrodinámica helicoidal ascencional
-                        p.angulo += omega * dt * 0.03;
-                        p.y += 0.12 * dt;
-
-                        // TRANSICIÓN DE FASE: Si alcanza el radio límite, precipita en la pared como Torta Compactada
-                        if (p.r >= rCalculo) {
-                            p.r = rCalculo;
-                            p.estado = 'torta';
-                            p.elemento.setAttribute('color', '#9333ea'); // Cambia a Púrpura (Torta)
-                        }
-
-                        if (p.y > 0.92) { 
-                            p.y = 0.11;
-                            p.r = Math.random() * (rCalculo * 0.4);
-                        }
-                    } else if (p.estado === 'torta') {
-                        // La torta se mantiene rotando fija pegada a la pared del cristal
-                        p.angulo += omega * dt * 0.03;
-                    }
-
-                    // Conversión matemática a coordenadas espaciales 3D
-                    let x = p.r * Math.cos(p.angulo);
-                    let z = p.r * Math.sin(p.angulo);
-                    p.elemento.setAttribute('position', `${x} ${p.y} ${z}`);
-                });
-            }
-
-            requestAnimationFrame(renderLoop);
-        }
-
-        // Arranque del Ciclo
-        inicializarFluido();
-        sincronizarSimulacion();
-        requestAnimationFrame(renderLoop);
-    </script>
-</body>
-</html>
+  #readouts{ display:grid; grid-template-columns:1fr 1fr; gap:3px 8px; margin:6px 0; padding:5px 7px;
+    background:var(--steel-dark); border:1px solid var(--steel-mid); border-radius:4px; }
+  #readouts div{font-size:8px; color:var(--steel-light);}
+  #
